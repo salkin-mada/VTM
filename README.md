@@ -4,9 +4,11 @@ This code is in a state of severe alpha and early development. That means that r
 
 ## requirements
 
+* sc3-plugins
 * UnitTesting quark
 * API quark
-* sc3-plugins
+* JoshMisc quark
+
 
 ## install VTM
 
@@ -14,7 +16,7 @@ This code is in a state of severe alpha and early development. That means that r
 
 * Install [SuperCollider](http://supercollider.github.io/download)
 * Install [SC3-plugins](https://github.com/supercollider/sc3-plugins)
-* Start SuperCollider and run `Quarks.install("UnitTesting")` and `Quarks.install("API")`
+* Start SuperCollider and run `Quarks.install("UnitTesting")` and `Quarks.install("API")` and `Quarks.install("JoshMisc")`
 * `git clone https://github.com/blacksound/VTM.git`
 * In SuperCollider Preferences / Interpreter menu, include the path to the VTM / Classes folder
 
