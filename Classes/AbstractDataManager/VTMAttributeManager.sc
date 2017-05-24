@@ -4,11 +4,11 @@ VTMAttributeManager : VTMElementComponent {
 	*dataClass{ ^VTMAttribute; }
 	name{ ^\attributes; }
 
-	*new{arg context, declaration;
-		^super.new(context, declaration).initAttributeManager;
+	*new{arg context, itemDeclarations;
+		^super.new(context, itemDeclarations).initAttributeManager;
 	}
 
 	initAttributeManager{
-		//presets = VTMPresetManager(declaration[\presets]);
+		//presets = VTMPresetManager(itemDeclarations[\presets]);
 	}
 }

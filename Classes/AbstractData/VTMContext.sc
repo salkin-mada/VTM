@@ -2,10 +2,10 @@ VTMContext : VTMElement {
 	var definition;
 	var buildFunction;
 	var fullPathThunk;
-	var <envir;
+	var <envir;//TEMP getter
 	var <addr; //the address for this object instance.
 	var <state;
-	var <presets;
+	var stateChangeCallbacks;
 	var <cues;
 	var <mappings;
 	var <scores;
@@ -14,27 +14,40 @@ VTMContext : VTMElement {
 	classvar <viewClassSymbol = 'VTMContextView';
 
 	*new{arg name, declaration, manager, definition;
-		^super.new(name, declaration, manager).initContext(definition);
-		//temp commented out
-		//definition must be an object of type ContextDefinition
-		// if(definition.isKindOf(VTMContextDefinition), {
-		// 	^super.new(name, declaration, manager).initContext(definition);
-		// 	}, {
-		// 		Error("% - definition arg must have a kind of VTMContextDefinition".format(
-		// 			this.class
-		// 		)).throw;
-		// 		^nil;
-		// });
+		var def;
+		/*
+		A definition is mandatory for making a Context.
+		The definition can either be specified in the declaration as a symbol, or
+		can be defined in sclang code using the definition argument for this constructor.
+		The definition environment in the declaration argument takes presedence over the
+		definition named in the declaration. This makes it easier to temporary override
+		context defitnitions in the case they need to be worked on or modified on the spot.
+		*/
+		if(declaration.includesKey(\definition), {
+			//TODO: Load definition from DefinitionLibrary here.
+			//TODO: Throw error if context defintion file not found.
+			//TODO: Make the ContextDefinition environment and add it to the def
+			//variable.
+			//def = someInstanceOfDefinitionLibrary.makeDefinition(
+			//   declaration[\definition]); //returns a ContextDefinition obj.
+		});
+		def = definition ? def;
+		^super.new(name, declaration, manager).initContext(def);
 	}
 
 	initContext{arg definition_;
-		definition = definition_ ? VTMContextDefinition.new(nil, this);
+		stateChangeCallbacks = IdentityDictionary.new;
+		if(definition_.notNil, {
+			//TODO: Make this into a .newFrom or .makeFrom so
+			//that definition could be both an Environemnt and 
+			//a ContextDefinition.
+			definition = VTMContextDefinition.new(definition_, this);
+		}, {
+			//TODO: make empty ContextDefinition if not defined.
+		});
 		envir = definition.makeEnvir;
 		condition = Condition.new;
-		presets = VTMPresetManager(this,
-			definition.presets,
-			declaration[\presets]
-		);
+		this.prChangeState(\loadedDefinition);
 		cues = VTMCueManager(this,
 			definition.cues,
 			declaration[\cues]
@@ -51,7 +64,7 @@ VTMContext : VTMElement {
 	}
 
 	components{
-		^super.components ++ [presets, cues, mappings, scores];
+		^super.components ++ [cues, mappings, scores];
 	}
 
 	//The context that calls prepare can issue a condition to use for handling
@@ -66,8 +79,8 @@ VTMContext : VTMElement {
 			if(envir.includesKey(\prepare), {
 				this.execute(\prepare, cond);
 			});
-			this.components.do({arg it; it.prepare(cond)});
-			this.enableOSC;
+			//this.components.do({arg it; it.prepare(cond)});
+			//this.enableOSC;
 			this.prChangeState(\didPrepare);
 			action.value(this);
 		};
@@ -137,15 +150,32 @@ VTMContext : VTMElement {
 
 	prChangeState{ arg val;
 		var newState;
+		var callback;
 		if(state != val, {
 			state = val;
 			this.changed(\state, state);
+			callback = stateChangeCallbacks[state];
+			if(callback.notNil, {
+				envir.use{
+					callback.value(this);
+				};
+			});
 		});
+	}
+
+	on{arg stateKey, func;
+		var it = stateChangeCallbacks[stateKey];
+		it = it.addFunc(func);
+		stateChangeCallbacks.put(stateKey, it);
 	}
 
 	//Call functions in the runtime environment with this context as first arg.
 	execute{arg selector ...args;
-		^envir[selector].value(this, *args);
+		var result;
+		envir.use{
+			result = currentEnvironment[selector].value(this, *args);
+		};
+		^result;
 	}
 
 	executeWithPrototypes{arg selector ...args;
@@ -212,7 +242,7 @@ VTMContext : VTMElement {
 
 	*parameterDescriptions{
 		^super.parameterDescriptions.putAll( VTMOrderedIdentityDictionary[
-			\definition -> (type: \string, optional: false)
+			\definition -> (type: \string, optional: true)
 		]);
 	}
 

@@ -2,6 +2,7 @@ VTMElement : VTMAbstractData {
 	var <attributes;
 	var <commands;
 	var <queries;
+	var <signals;
 
 	*new{arg name, declaration, manager;
 		^super.new(name, declaration, manager).initElement;
@@ -9,31 +10,40 @@ VTMElement : VTMAbstractData {
 
 	initElement{
 		this.prInitAttributes;
+		this.prInitSignals;
 		this.prInitQueries;
 		this.prInitCommands;
+		//TODO: register with LocalNetworkNode singleton.
 	}
 
 	prInitAttributes{
-		var attrDeclaration = VTMOrderedIdentityDictionary.new;
+		var itemDeclarations = VTMOrderedIdentityDictionary.new;
 		this.class.attributeDescriptions.keysValuesDo({arg attrKey, attrDesc;
-			attrDeclaration.put(attrKey, attrDesc.deepCopy);
+			itemDeclarations.put(attrKey, attrDesc.deepCopy);
 			if(declaration.includesKey(attrKey), {
-				attrDeclaration.at(attrKey).put(\value, declaration[attrKey]);
+				itemDeclarations.at(attrKey).put(\value, declaration[attrKey]);
 			});
 		});
-		attributes = VTMAttributeManager(this, attrDeclaration);
+		attributes = VTMAttributeManager(this, itemDeclarations);
+	}
+
+	prInitSignals{
+		var itemDeclarations = this.class.signalDescriptions.deepCopy;
+		signals = VTMSignalManager(this, itemDeclarations);
 	}
 
 	prInitQueries{
-		queries = VTMQueryManager(this, declaration[\queries]);
+		var itemDeclarations = this.class.queryDescriptions.deepCopy;
+		queries = VTMQueryManager(this, itemDeclarations);
 	}
 
 	prInitCommands{
-		commands = VTMCommandManager(this, declaration[\commands]);
+		var itemDeclarations = this.class.commandDescriptions.deepCopy;
+		commands = VTMCommandManager(this, itemDeclarations);
 	}
 
 	components{
-		^[attributes, queries, commands];
+		^[attributes, queries, signals, commands];
 	}
 
 	free{
@@ -44,12 +54,14 @@ VTMElement : VTMAbstractData {
 	*attributeDescriptions{  ^VTMOrderedIdentityDictionary[]; }
 	*commandDescriptions{ ^VTMOrderedIdentityDictionary[]; }
 	*queryDescriptions{ ^VTMOrderedIdentityDictionary[]; }
+	*signalDescriptions{ ^VTMOrderedIdentityDictionary[]; }
 
 	description{
 		var result = super.description;
 		result.putAll(VTMOrderedIdentityDictionary[
 			\attributes -> this.class.attributeDescriptions,
 			\commands -> this.class.commandDescriptions,
+			\signals -> this.class.signalDescriptions,
 			\queries -> this.class.queryDescriptions
 		]);
 		^result;
@@ -81,6 +93,21 @@ VTMElement : VTMAbstractData {
 	//get query results. Only run-time
 	query{arg key;
 		^queries[key].value;
+	}
+
+	//emits a signal
+	//should not be used outside the class.
+	//TODO: How to make this method esily avilable from within a
+	//context definition, and still protected from the outside?
+	emit{arg key...args;
+		signals[key].valueAction_(*args);
+	}
+
+	onSignal{arg key, func;
+		//TODO: Warn or throw if signal not found
+		if(signals.includes(key), {
+			signals[key].action_(func);
+		});
 	}
 
 }

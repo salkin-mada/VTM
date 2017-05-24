@@ -2,42 +2,46 @@ VTMContextDefinition {
 	var definition;
 	var context;
 
-	*new{arg def, context;
-		^super.new.initContextDefinition(def, context);
+	*new{arg env, context;
+		^super.new.initContextDefinition(env, context);
 	}
 
-	initContextDefinition{arg def_, context_;
-		definition = def_ ? Environment[
-			\parameters -> IdentityDictionary.new,
-			\commands -> IdentityDictionary.new,
-			\presets -> IdentityDictionary.new,
-			\cues -> IdentityDictionary.new,
-			\mappings -> IdentityDictionary.new,
-			\scores -> IdentityDictionary.new
+	initContextDefinition{arg env_, context_;
+		definition = env_ ? Environment[
+			\parameters -> VTMOrderedIdentityDictionary.new,
+			\attributes -> VTMOrderedIdentityDictionary.new,
+			\commands -> VTMOrderedIdentityDictionary.new,
+			\presets -> VTMOrderedIdentityDictionary.new,
+			\cues -> VTMOrderedIdentityDictionary.new,
+			\mappings -> VTMOrderedIdentityDictionary.new,
+			\scores -> VTMOrderedIdentityDictionary.new
 		];
 		context = context_;
 	}
-
+	
 	makeEnvir{
 		^definition.deepCopy.put(\self, context);
 	}
 
 	parameters{
-		^definition[\parameters] ? IdentityDictionary.new;
+		^definition[\parameters];
+	}
+	attributes{
+		^definition[\attributes];
 	}
 	commands{
-		^definition[\command] ? IdentityDictionary.new;
+		^definition[\command];
 	}
 	presets{
-		^definition[\presets] ? IdentityDictionary.new;
+		^definition[\presets];
 	}
 	cues{
-		^definition[\cues] ? IdentityDictionary.new;
+		^definition[\cues];
 	}
 	mappings{
-		^definition[\mappings] ? IdentityDictionary.new;
+		^definition[\mappings];
 	}
 	scores{
-		^definition[\scores] ? IdentityDictionary.new;
+		^definition[\scores];
 	}
 }
