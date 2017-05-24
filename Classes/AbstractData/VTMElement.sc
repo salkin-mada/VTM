@@ -13,6 +13,7 @@ VTMElement : VTMAbstractData {
 		this.prInitSignals;
 		this.prInitQueries;
 		this.prInitCommands;
+
 		//TODO: register with LocalNetworkNode singleton.
 	}
 
@@ -100,7 +101,7 @@ VTMElement : VTMAbstractData {
 	//TODO: How to make this method esily avilable from within a
 	//context definition, and still protected from the outside?
 	emit{arg key...args;
-		signals[key].valueAction_(*args);
+		signals[key].emit(*args);
 	}
 
 	onSignal{arg key, func;

@@ -48,19 +48,35 @@ VTMContext : VTMElement {
 		envir = definition.makeEnvir;
 		condition = Condition.new;
 		this.prChangeState(\loadedDefinition);
-		cues = VTMCueManager(this,
-			definition.cues,
-			declaration[\cues]
-		);
-		mappings = VTMMappingManager(this,
-			definition.mappings,
-			declaration[\mappings]
-		);
-		scores = VTMScoreManager(this,
-			definition.scores,
-			declaration[\scores]
-		);
+		this.prInitCues;
+		this.prInitMappings;
+		this.prInitScores;
+		this.prInitComponentsWithContextDefinition;
 		this.prChangeState(\didInitialize);
+	}
+
+	prInitCues{
+		var itemDeclarations = this.class.cueDescriptions.deepCopy;
+		cues = VTMCueManager(this, itemDeclarations);
+	}
+	prInitMappings{
+		var itemDeclarations = this.class.mappingDescriptions.deepCopy;
+		mappings = VTMCueManager(this, itemDeclarations);
+	}
+	prInitScores{
+		var itemDeclarations = this.class.scoreDescriptions.deepCopy;
+		scores = VTMCueManager(this, itemDeclarations);
+	}
+
+	prInitComponentsWithContextDefinition{
+		this.components.do({arg component;
+			var compName = component.name;
+			if(envir.includesKey(compName), {
+				var newItem, itemDeclarations;
+				itemDeclarations = envir[compName];
+				component.addItemsFromItemDeclarations(itemDeclarations);
+			});
+		});
 	}
 
 	components{
@@ -239,6 +255,10 @@ VTMContext : VTMElement {
 		// });
 		^result;
 	}
+
+	*cueDescriptions{  ^VTMOrderedIdentityDictionary[]; }
+	*mappingDescriptions{ ^VTMOrderedIdentityDictionary[]; }
+	*scoreDescriptions{ ^VTMOrderedIdentityDictionary[]; }
 
 	*parameterDescriptions{
 		^super.parameterDescriptions.putAll( VTMOrderedIdentityDictionary[

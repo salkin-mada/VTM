@@ -21,11 +21,15 @@ VTMAbstractDataManager {
 		itemDeclarations = itemDeclarations_;
 		items = VTMOrderedIdentityDictionary.new;
 		if(itemDeclarations_.notNil, {
-			itemDeclarations_.keysValuesDo({arg itemName, itemDeclaration;
-				var newItem;
-				newItem = this.class.dataClass.new(itemName, itemDeclaration, this);
-				this.addItem(newItem);
-			});
+			this.addItemsFromItemDeclarations(itemDeclarations_);
+		});
+	}
+
+	addItemsFromItemDeclarations{arg itemDecls;
+		itemDecls.keysValuesDo({arg itemName, itemDeclaration;
+			var newItem;
+			newItem = this.class.dataClass.new(itemName, itemDeclaration, this);
+			this.addItem(newItem);
 		});
 	}
 
