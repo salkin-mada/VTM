@@ -26,6 +26,9 @@ VTMAbstractData{
 		manager = manager_;
 		declaration = VTMDeclaration.newFrom(declaration_ ? []);
 		this.prInitParameters;
+		if(manager.notNil, {
+			manager.addItem(this);
+		});
 	}
 
 	prInitParameters{
@@ -61,6 +64,14 @@ VTMAbstractData{
 
 		});
 		parameters = VTMParameterManager.newFrom(declaration);
+	}
+
+	disable{
+		this.disableOSC;
+	}
+
+	enable{
+		this.enableOSC;
 	}
 
 	free{
@@ -132,9 +143,9 @@ VTMAbstractData{
 	enableOSC{
 		//make OSC interface if not already created
 		if(oscInterface.isNil, {
-			oscInterface = VTMOSCInterface.new(this);
+			//oscInterface = VTMOSCInterface.new(this);//TEMP uncommented
 		});
-		oscInterface.enable;
+		//oscInterface.enable; //TEMP uncommented
 	}
 
 	disableOSC{

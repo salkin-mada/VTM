@@ -107,7 +107,7 @@ VTMElement : VTMAbstractData {
 
 	onSignal{arg key, func;
 		//TODO: Warn or throw if signal not found
-		if(signals.includes(key), {
+		if(signals.hasItemNamed(key), {
 			signals[key].action_(func);
 		});
 	}

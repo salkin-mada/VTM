@@ -183,12 +183,5 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		"DID I Find: % \n\t%".format(managerObj, class).postln;
 		^managerObj;
 	}
-
-	registerUnmanagedContext{arg context;
-		var managerObj;
-		managerObj = this.findManagerForContextClass(context.class);
-		managerObj.addItem(context);
-		"registering unmanaged: %".format(context).postln;
-	}
 }
 

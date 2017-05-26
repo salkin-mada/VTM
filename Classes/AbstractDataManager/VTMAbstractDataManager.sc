@@ -39,15 +39,16 @@ VTMAbstractDataManager {
 		});
 	}
 
-	removeItem{arg itemName;
-		if(items.includesKey(itemName), {
+	freeItem{arg itemName;
+		if(this.hasItemNamed(itemName), {
 			var removedItem;
+			items[itemName].disable;//dissable actions and messages
 			removedItem = items.removeAt(itemName);
 			removedItem.free;
 		});
 	}
 
-	includes{arg key;
+	hasItemNamed{arg key;
 		^items.includesKey(key);
 	}
 

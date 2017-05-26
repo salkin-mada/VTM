@@ -18,15 +18,7 @@ VTMValueElement : VTMAbstractData {
 		});
 		valueObj = VTMValue.makeFromType(declaration[\type], valueProperties);
 		forwardings = VTMOrderedIdentityDictionary.new;
-		forwarder = SimpleController(valueObj).put(\value, {arg theChanged;
-			forwardings.do({arg item;
-				if(item[\vtmJson], {
-					VTM.sendMsg(item[\addr].hostname, item[\addr].port, item[\path], this.value);
-				}, {
-					item[\addr].sendMsg(item[\path], *this.value);
-				});
-			});
-		});
+		this.enableForwarding;
 	}
 
 	action_{arg func;
@@ -95,6 +87,36 @@ VTMValueElement : VTMAbstractData {
 
 	removeAllForwardings{
 		forwardings.clear;
+	}
+
+	disableForwarding{
+		forwarder.remove(\value);
+		forwarder.clear;
+		forwarder = nil;
+	}
+
+	enableForwarding{
+		forwarder = SimpleController(valueObj).put(\value, {arg theChanged;
+			forwardings.do({arg item;
+				if(item[\vtmJson], {
+					VTM.sendMsg(item[\addr].hostname, item[\addr].port, item[\path], this.value);
+				}, {
+					item[\addr].sendMsg(item[\path], *this.value);
+				});
+			});
+		});
+	}
+
+	disable{
+		super.disable;
+		this.disableForwarding;
+		valueObj.disable;
+	}
+
+	enable{
+		super.enable;
+		this.enableForwarding;
+		valueObj.enable;
 	}
 
 }
