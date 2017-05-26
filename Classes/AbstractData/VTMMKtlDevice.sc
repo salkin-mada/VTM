@@ -9,7 +9,11 @@ VTMMKtlDevice : VTMHardwareDevice {
 	initMKtlDevice{
 		this.envir.use({
 			var attributes,returns, virtualMKtl;
-			virtualMKtl = MKtl( ~self.get( \mktlName ), ~self.get( \mktlDescription ).asString, tryOpenDevice: false );
+			virtualMKtl = MKtl(
+			   	~self.get( \mktlName ),
+			   	~self.get( \mktlDescription ).asString,
+				multiIndex: ~self.get(\mktlIndex),
+			   	tryOpenDevice: false );
 
 			returns = virtualMKtl.inputElements.keys.asArray.sort.collect{ |it|
 				var el = virtualMKtl.inputElements.at( it );
@@ -33,21 +37,25 @@ VTMMKtlDevice : VTMHardwareDevice {
 				);
 			};
 
-			~returns.putAll( VTMOrderedIdentityDictionary.with( *returns ) );
-			~attributes.putAll( VTMOrderedIdentityDictionary.with( *attributes )  );
-
-			~commands.put( \makeGui, ( action: { ~mktl.gui } ) );
+			~self.prAddComponentsToEnvir( (
+				returns: returns,
+				attributes: attributes,
+				commands: [ \makeGui -> ( action: { ~mktl.gui } ) ] 
+			) );
 
 			virtualMKtl.free;
 		});
-		this.prInitComponentsWithContextDefinition; /// this seems to fix it!
 		"VTMMKtlDevice initialized".postln;
 	}
 
 	prepare {
 		envir.use({
 			// open desired device
-			~mktl = MKtl( ~self.get( \mktlName ), ~self.get( \mktlDescription ).asString; );
+			~mktl = MKtl( 
+				~self.get( \mktlName ),
+			   	~self.get( \mktlDescription ).asString,
+				multiIndex: ~self.get(\mktlIndex)
+		   	);
 			// set actions for each control: here an interesting question: do we need to set actions for controls not currently used?
 			~mktl.inputElements.do{ |it|
 				~self.return( it.name, it.value );
@@ -75,7 +83,8 @@ VTMMKtlDevice : VTMHardwareDevice {
 		^super.parameterDescriptions.putAll(VTMOrderedIdentityDictionary[
 			\mktlName -> (type: \string, optional: false),
 			//TODO: Change the type to symbol when it is implemented
-			\mktlDescription -> (type: \string, optional: false, strictlyTyped: true)
+			\mktlDescription -> (type: \string, optional: false, strictlyTyped: true),
+			\mktlIndex -> (type: \integer, optional: true, strictlyTyped: true)
 	   	]); 
 	}
 

@@ -50,6 +50,27 @@ VTMValueElement : VTMAbstractData {
 		forwarder.remove(\value);
 		valueObj.release;
 		valueObj = nil;
+		super.free;
+	}
+
+	addForwarding{arg key, addr, path, vtmJson = false, mapFunc;
+		//Observe value object for changng values
+		forwardings.put(key, (addr: addr, path: path, vtmJson: vtmJson, mapFunc: mapFunc));
+	}
+
+	removeForwarding{arg key;
+		forwardings.removeAt(key);
+	}
+
+	removeAllForwardings{
+		forwardings.clear;
+	}
+
+	disableForwarding{
+		forwarder.remove(\value);
+		forwarder.clear;
+		forwarder = nil;
+		super.disableForwarding;
 	}
 
 	type{
@@ -76,50 +97,32 @@ VTMValueElement : VTMAbstractData {
 		^result;
 	}
 
-	addForwarding{arg key, addr, path, vtmJson = false;
-		//Observe value object for changng values
-		forwardings.put(key, (addr: addr, path: path, vtmJson: vtmJson));
-	}
-
-	removeForwarding{arg key;
-		forwardings.removeAt(key);
-	}
-
-	removeAllForwardings{
-		forwardings.clear;
-	}
-
-	disableForwarding{
-		forwarder.remove(\value);
-		forwarder.clear;
-		forwarder = nil;
-	}
-
-	enableForwarding{
-		forwarder = SimpleController(valueObj).put(\value, {arg theChanged;
-			forwardings.do({arg item;
-				if(item[\vtmJson], {
-					VTM.sendMsg(item[\addr].hostname, item[\addr].port, item[\path], this.value);
-				}, {
-					if(this.type==\dictionary, {
-						"VTMValueElement, forwarding, dictionaries must be sent as JSON".warn;
-					});
-					item[\addr].sendMsg(item[\path], *this.value);
-				});
-			});
-		});
-	}
-
 	disable{
 		super.disable;
-		this.disableForwarding;
 		valueObj.disable;
 	}
 
 	enable{
 		super.enable;
-		this.enableForwarding;
 		valueObj.enable;
 	}
 
+	enableForwarding{
+		forwarder = SimpleController(valueObj).put(\value, {arg theChanged;
+			forwardings.do({arg item;
+				var outputValue, mapFunc;
+				//TODO: Change this so it supports other value types
+				mapFunc = item[\mapFunc] ? {|val| val};
+				outputValue = mapFunc.value(this.value);
+				if(item[\vtmJson], {
+					VTM.sendMsg(item[\addr].hostname, item[\addr].port, item[\path], outputValue);
+				}, {
+					if(this.type==\dictionary, {
+						"VTMValueElement, forwarding, dictionaries must be sent as JSON".warn;
+					});
+					item[\addr].sendMsg(item[\path], outputValue);
+				});
+			});
+		});
+	}
 }

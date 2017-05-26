@@ -84,11 +84,27 @@ VTMContext : VTMElement {
 	}
 
 	prInitComponentsWithContextDefinition{
+//		this.components.do({arg component;
+//			var compName = component.name;
+//			if(envir.includesKey(compName), {
+//				var newItem, itemDeclarations;
+//				itemDeclarations = envir[compName];
+//				component.addItemsFromItemDeclarations(itemDeclarations);
+//			});
+//		});
+		this.prAddComponentsToEnvir(envir);
+	}
+
+	prAddComponentsToEnvir{arg componentDeclarations;
 		this.components.do({arg component;
 			var compName = component.name;
-			if(envir.includesKey(compName), {
+			if(componentDeclarations.includesKey(compName), {
 				var newItem, itemDeclarations;
-				itemDeclarations = envir[compName];
+				itemDeclarations = componentDeclarations[compName];
+				//TODO: This is a temporary hack that checks the type of the argument.
+				if(itemDeclarations.isKindOf(ArrayedCollection), {
+					itemDeclarations  = VTMOrderedIdentityDictionary.with( *itemDeclarations );
+				});
 				component.addItemsFromItemDeclarations(itemDeclarations);
 			});
 		});
