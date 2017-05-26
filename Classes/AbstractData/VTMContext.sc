@@ -49,7 +49,7 @@ VTMContext : VTMElement {
 		stateChangeCallbacks = IdentityDictionary.new;
 		if(definition_.notNil, {
 			//TODO: Make this into a .newFrom or .makeFrom so
-			//that definition could be both an Environemnt and 
+			//that definition could be both an Environemnt and
 			//a ContextDefinition.
 			definition = VTMContextDefinition.new(definition_, this);
 		}, {
@@ -76,11 +76,11 @@ VTMContext : VTMElement {
 	}
 	prInitMappings{
 		var itemDeclarations = this.class.mappingDescriptions.deepCopy;
-		mappings = VTMCueManager(this, itemDeclarations);
+		mappings = VTMMappingManager(this, itemDeclarations);
 	}
 	prInitScores{
 		var itemDeclarations = this.class.scoreDescriptions.deepCopy;
-		scores = VTMCueManager(this, itemDeclarations);
+		scores = VTMScoreManager(this, itemDeclarations);
 	}
 
 	prInitComponentsWithContextDefinition{
@@ -249,22 +249,14 @@ VTMContext : VTMElement {
 		// "[%] Update: %".format(this.name, [theChanged, whatChanged, theChanger, args]).postln;
 	}
 
-	enableOSC{
-		super.enableOSC;
-		this.components.do(_.enableOSC);
+	enableOSC {
+		super.enableOSC();
+		this.components.do(_.enableOSC());
 	}
 
-	disableOSC{
-		this.components.do(_.disableOSC);
-		super.disableOSC;
-	}
-
-	oscEnabled{
-		^if(oscInterface.notNil, {
-			oscInterface.enabled;
-		}, {
-			^nil;
-		});
+	disableOSC {
+		this.components.do(_.disableOSC());
+		super.disableOSC();
 	}
 
 	//recursive == true pulls declaration from components

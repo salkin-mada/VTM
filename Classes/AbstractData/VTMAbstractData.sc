@@ -1,4 +1,4 @@
-VTMAbstractData{
+VTMAbstractData {
 	var <name;
 	var <manager;
 	var parameters;
@@ -12,8 +12,8 @@ VTMAbstractData{
 		^this.subclassResponsibility(thisMethod);
 	}
 
-	*new{arg name, declaration, manager;
-		^super.new.initAbstractData(name, declaration, manager);
+	*new{arg name_, declaration_, manager_;
+		^super.new.initAbstractData(name_, declaration_, manager_);
 	}
 
 	*newFromDeclaration{arg declaration, manager;
@@ -43,14 +43,16 @@ VTMAbstractData{
 				checkType = val[\strictType] ? true;
 				if(checkType, {
 					if(tempVal.isValidType(declaration[key]).not, {
-						Error("Parameter value '%' must be of type '%'".format(key, tempVal.type)).throw;
+						Error("Parameter value '%' must be of type '%'"
+							.format(key, tempVal.type)).throw;
 					});
 				});
 				//check if value is e.g. within described range.
 				checkValue = val[\strictValid] ? false;
 				if(checkValue, {
 					if(tempVal.isValidValue(declaration[key]).not, {
-						Error("Parameter value '%' is invalid".format(key)).throw;
+						Error("Parameter value '%' is invalid"
+							.format(key)).throw;
 					});
 				});
 			}, {
@@ -58,7 +60,8 @@ VTMAbstractData{
 				//if not check if it is optional, true by default
 				optional = val[\optional] ? true;
 				if(optional.not, {
-					Error("Parameters is missing non-optional value '%'".format(key)).throw;
+					Error("Parameters is missing non-optional value '%'"
+						.format(key)).throw;
 				});
 			});
 
@@ -111,7 +114,7 @@ VTMAbstractData{
 		^VTMOrderedIdentityDictionary[
 			\name -> (type: \string, optional: true),
 			\path -> (type: \string, optional: true)
-	   	]; 
+	   	];
 	}
 
 	parameters{
@@ -162,25 +165,18 @@ VTMAbstractData{
 
 	leadingSeparator{ ^'/'; }
 
-	enableOSC{
-		//make OSC interface if not already created
-		if(oscInterface.isNil, {
-			//oscInterface = VTMOSCInterface.new(this);//TEMP uncommented
-		});
-		//oscInterface.enable; //TEMP uncommented
+	enableOSC {
+		oscInterface !? { oscInterface.enable(); };
+		oscInterface ?? { oscInterface = VTMOSCInterface(this).enable() };
 	}
 
-	disableOSC{
-		//this.disableForwarding;//TODO: iter here
-		if(oscInterface.notNil, { oscInterface.free;});
+
+	disableOSC {
+		oscInterface !? { oscInterface.free() };
 		oscInterface = nil;
 	}
 
-	oscEnabled{
-		^if(oscInterface.notNil, {
-			oscInterface.enabled;
-		}, {
-			^nil;
-		});
+	oscEnabled {
+		^oscInterface.notNil();
 	}
 }

@@ -101,27 +101,24 @@ VTMAbstractDataManager {
 
 	leadingSeparator{ ^':'; }
 
-	enableOSC{
-		//make OSC interface if not already created
-		if(oscInterface.isNil, {
-			oscInterface = VTMOSCInterface.new(this);
-		});
-		oscInterface.enable;
+	enableOSC {
+
+		items.keysValuesDo { |key, value|
+			value.enableOSC();
+		};
+
+		oscInterface !? { oscInterface.enable() };
+		oscInterface ?? { oscInterface = VTMOSCInterface(this).enable() };
 	}
 
-	disableOSC{
-		oscInterface.free;
+	disableOSC {
+		oscInterface !? { oscInterface.free() };
 		oscInterface = nil;
 	}
 
-	oscEnabled{
-		^if(oscInterface.notNil, {
-			oscInterface.enabled;
-		}, {
-			^nil;
-		});
+	oscEnabled {
+		^oscInterface.notNil();
 	}
-
 
 	*makeDataManagerDeclaration{arg descriptions, valueDeclarations;
 		var result = VTMOrderedIdentityDictionary[];
@@ -161,4 +158,5 @@ VTMAbstractDataManager {
 			item.disableForwarding;
 		});
 	}
+
 }
