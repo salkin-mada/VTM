@@ -174,12 +174,11 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 
 	findManagerForContextClass{arg class;
 		var managerObj;
-		managerObj = switch(class,
-			VTMModule, { moduleHost;},
-			VTMHardwareDevice, { hardwareSetup; },
-			VTMScene, { sceneOwner; },
-			VTMScore, { scoreManager; }
-		);
+		case
+		{class.isKindOf(VTMModule.class) } {managerObj =  moduleHost; }
+		{class.isKindOf(VTMHardwareDevice.class) } {managerObj =  hardwareSetup; }
+		{class.isKindOf(VTMScene.class) } {managerObj =  sceneOwner; }
+		{class.isKindOf(VTMScore.class) } {managerObj =  scoreManager; };
 		"DID I Find: % \n\t%".format(managerObj, class).postln;
 		^managerObj;
 	}

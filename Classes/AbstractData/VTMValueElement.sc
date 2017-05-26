@@ -101,6 +101,9 @@ VTMValueElement : VTMAbstractData {
 				if(item[\vtmJson], {
 					VTM.sendMsg(item[\addr].hostname, item[\addr].port, item[\path], this.value);
 				}, {
+					if(this.type==\dictionary, {
+						"VTMValueElement, forwarding, dictionaries must be sent as JSON".warn;
+					});
 					item[\addr].sendMsg(item[\path], *this.value);
 				});
 			});
