@@ -6,21 +6,35 @@
 //- .leadingSeparator
 //- *makeOSCAPI(obj)
 VTMOSCInterface {
-	var model;
-	var responderDict;
-	var <enabled = false;
 
-	*new{arg model;
-		if(model.respondsTo(\fullPath).not, {
+	var parent;
+	var <enabled = false;
+	var responder;
+
+	*new { |parent|
+
+		if(parent.respondsTo(\fullPath).not, {
 			NotYetImplementedError(
-				"% has not implemented 'fullPath' method yet!".format(model.class)).throw;
+				"% has not implemented 'fullPath' method yet!"
+				.format(parent.class)).throw;
 		});
 
-		^super.new.init(model);
+		postln(format("OSC Interface created for: %", parent.fullPath()));
+
+		^super.newCopyArgs(parent);
 	}
 
-	init{arg model_;
-		model = model_;
+	makeResponderFromParent {
+
+		responder = OSCFunc({|msg, time, addr, recvport|
+			var path = msg[0], values;
+			msg = msg.drop(1);
+			values = msg;
+
+			postln(format("OSC Message received at %, on port %, addressed to: %, with value: %",
+				time, recvport, path, values));
+		}, parent.fullPath, recvPort: NetAddr.localAddr.port());
+
 	}
 
 	*prMakeResponders{arg model;
@@ -86,52 +100,17 @@ VTMOSCInterface {
 		^result;
 	}
 
-	*prMakeSetterResponders{arg model;
-		var result = IdentityDictionary.new;
-		model.class.declarationKeys.do({arg declarationKey;
-			//TODO: maybe move declaration separator somewhere potentionally more DRY?
-			var path = (model.fullPath ++ '/' ++ declarationKey).asSymbol;
-			result.put(
-				path,
-				OSCFunc({arg msg, time, resp, port;
-					model.perform(declarationKey.asSetter, VTMJSON.parse(msg[1]));
-				}, path)
-			);
-		});
-		^result;
-	}
-
-	*prMakeQueryResponders{arg model;
-		var result = IdentityDictionary.new;
-		^result;
-	}
-
-	*prMakeCommandResponders{arg model;
-		var result = IdentityDictionary.new;
-		^result;
-	}
-
-	enable{
-		if(responderDict.isNil, {
-			responderDict = this.class.prMakeResponders(model);
-		});
+	enable {
 		enabled = true;
+		this.makeResponderFromParent();
 	}
 
 	disable{
-		if(responderDict.notNil, {
-			responderDict.keysValuesDo({arg respTypeKey, typeRespDict;
-				typeRespDict.keys.do({arg k;
-					typeRespDict.removeAt(k).free;
-				});
-			});
-			responderDict = nil;
-		});
 		enabled = false;
 	}
 
-	free{
+	free {
 		this.disable;
-		model = nil;
+		parent = nil;
 	}
 }
