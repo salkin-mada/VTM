@@ -102,9 +102,11 @@ VTMAbstractDataManager {
 	leadingSeparator{ ^':'; }
 
 	enableOSC {
+
 		items.keysValuesDo { |key, value|
 			value.enableOSC();
 		};
+
 		oscInterface !? { oscInterface.enable() };
 		oscInterface ?? { oscInterface = VTMOSCInterface(this).enable() };
 	}

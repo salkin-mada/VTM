@@ -9,7 +9,7 @@ VTMOSCInterface {
 
 	var parent;
 	var <enabled = false;
-	var responder;
+	var responder, compliant_responder;
 
 	*new { |parent|
 
@@ -20,84 +20,32 @@ VTMOSCInterface {
 		});
 
 		postln(format("OSC Interface created for: %", parent.fullPath()));
-
 		^super.newCopyArgs(parent);
+	}
+
+	*makeOSCPathCompliant { |path|
+		var res = path.replace("/:", "/");
+		if(res.contains(":")) { res = res.replace(":", "/") };
+		^res
 	}
 
 	makeResponderFromParent {
 
 		responder = OSCFunc({|msg, time, addr, recvport|
-			var path = msg[0], values;
+			var path = msg[0];
 			msg = msg.drop(1);
-			values = msg;
-
 			postln(format("OSC Message received at %, on port %, addressed to: %, with value: %",
-				time, recvport, path, values));
+				time, recvport, path, msg));
 		}, parent.fullPath, recvPort: NetAddr.localAddr.port());
 
-	}
+		compliant_responder = OSCFunc({|msg, time, addr, recvport|
+			var path = msg[0];
+			msg = msg.drop(1);
+			postln(format("OSC Message received at %, on port %, addressed to: %, with value: %",
+				time, recvport, path, msg));
+		}, VTMOSCInterface.makeOSCPathCompliant(parent.fullPath.asString()),
+		recvPort: NetAddr.localAddr.port());
 
-	*prMakeResponders{arg model;
-		var result = IdentityDictionary.new;
-		/*
-		model.class.makeOSCAPI(model).keysValuesDo({arg cmdKey, cmdFunc;
-		var responderFunc, lastCmdChar, responderPath;
-		lastCmdChar = cmdKey.asString.last;
-		responderPath = model.fullPath;
-		switch(lastCmdChar,
-		$!, {
-		responderFunc = {arg msg, time, addr, port;
-		cmdFunc.value(model);
-		};
-		},
-		$?, {
-		responderFunc = {arg msg, time, addr, port;
-		var queryHost, queryPath, queryPort;
-		if(msg.size == 4, {
-		var replyData;
-		queryHost = msg[1].asString;
-		queryPort = msg[2];
-		queryPath = msg[3];
-		replyData = cmdFunc.value(model);
-		if(replyData.notNil, {
-		if(replyData.isArray, {
-		NetAddr(queryHost, queryPort).sendMsg(
-		queryPath.asSymbol,
-		*replyData
-		);
-		}, {
-		NetAddr(queryHost, queryPort).sendMsg(
-		queryPath.asSymbol,
-		replyData
-		);
-		});
-		});
-		}, {
-		"% command '%' OSC missing query addr data".format(
-		model.class,
-		responderPath
-		).warn
-		});
-		};
-		},
-		//the default case is a setter method
-		{
-		responderFunc = {arg msg, time, addr, port;
-		cmdFunc.value(msg[1..]);
-		};
-		}
-		);
-		result.put(
-		cmdKey,
-		OSCFunc(responderFunc, responderPath);
-		);
-
-		});
-		*/
-		result.put(\setters, this.prMakeSetterResponders(model));
-		result.put(\queries, this.prMakeQueryResponders(model));
-		result.put(\commands, this.prMakeCommandResponders(model));
-		^result;
 	}
 
 	enable {
