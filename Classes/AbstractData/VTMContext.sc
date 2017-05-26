@@ -23,7 +23,7 @@ VTMContext : VTMElement {
 		definition named in the declaration. This makes it easier to temporary override
 		context defitnitions in the case they need to be worked on or modified on the spot.
 		*/
-		if(declaration.includesKey(\definition), {
+		if(declaration.notNil and: {declaration.includesKey(\definition)}, {
 			//TODO: Load definition from DefinitionLibrary here.
 			//TODO: Throw error if context defintion file not found.
 			//TODO: Make the ContextDefinition environment and add it to the def
@@ -54,6 +54,7 @@ VTMContext : VTMElement {
 			definition = VTMContextDefinition.new(definition_, this);
 		}, {
 			//TODO: make empty ContextDefinition if not defined.
+			definition = VTMContextDefinition.new(nil, this);
 		});
 		envir = definition.makeEnvir;
 		condition = Condition.new;
