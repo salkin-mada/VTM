@@ -128,12 +128,12 @@ VTMElement : VTMAbstractData {
 		^signals.items.keys;
 	}
 
-	addForwarding{arg key, compName, itemName,  addr, path, vtmJson = false;
+	addForwarding{arg key, compName, itemName,  addr, path, vtmJson = false, mapFunc;
 		var comp = switch(compName, 
 			\attributes, {attributes},
 			\returns, {returns}
 		);
-		comp.addForwarding(key, itemName, addr, path, vtmJson);
+		comp.addForwarding(key, itemName, addr, path, vtmJson, mapFunc);
 	}
 
 	removeForwarding{arg key, compName, itemName;

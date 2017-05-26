@@ -134,9 +134,9 @@ VTMAbstractDataManager {
 		^result;
 	}
 
-	addForwarding{arg key, itemName, addr, path, vtmJson = false;
+	addForwarding{arg key, itemName, addr, path, vtmJson = false, mapFunc;
 		var item = items[itemName];
-		item.addForwarding(key, addr, path, vtmJson);
+		item.addForwarding(key, addr, path, vtmJson, mapFunc);
 	}
 
 	removeForwarding{arg key, itemName;
