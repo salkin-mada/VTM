@@ -143,10 +143,18 @@ VTMAbstractData {
 
 	leadingSeparator{ ^'/'; }
 
+	enableOSC {
+		oscInterface !? { oscInterface.enable(); };
+		oscInterface ?? { oscInterface = VTMOSCInterface(this).enable() };
 	}
 
+	disableOSC {
+		oscInterface !? { oscInterface.free() };
 		oscInterface = nil;
 	}
 
+	oscEnabled {
+		oscInterface !? { ^true };
+		oscInterface ?? { ^false }
 	}
 }
