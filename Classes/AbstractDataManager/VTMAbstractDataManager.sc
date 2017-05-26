@@ -117,8 +117,7 @@ VTMAbstractDataManager {
 	}
 
 	oscEnabled {
-		oscInterface !? { ^true };
-		oscInterface ?? { ^false }
+		^oscInterface.notNil();
 	}
 
 	*makeDataManagerDeclaration{arg descriptions, valueDeclarations;

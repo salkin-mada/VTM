@@ -24,7 +24,7 @@ VTMOSCInterface {
 	}
 
 	*makeOSCPathCompliant { |path|
-		var res = path.replace("/:", "/");
+		var res = path.asString().replace("/:", "/");
 		if(res.contains(":")) { res = res.replace(":", "/") };
 		^res
 	}
@@ -45,7 +45,6 @@ VTMOSCInterface {
 				time, recvport, path, msg));
 		}, VTMOSCInterface.makeOSCPathCompliant(parent.fullPath.asString()),
 		recvPort: NetAddr.localAddr.port());
-
 	}
 
 	enable {
@@ -53,7 +52,7 @@ VTMOSCInterface {
 		this.makeResponderFromParent();
 	}
 
-	disable{
+	disable {
 		enabled = false;
 	}
 

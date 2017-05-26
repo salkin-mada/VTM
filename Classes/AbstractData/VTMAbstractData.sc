@@ -154,7 +154,6 @@ VTMAbstractData {
 	}
 
 	oscEnabled {
-		oscInterface !? { ^true };
-		oscInterface ?? { ^false }
+		^oscInterface.notNil();
 	}
 }
