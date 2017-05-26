@@ -6,7 +6,7 @@ VTMValue {
 	var properties;
 
 	*prDefaultValueForType{
-		this.subclassResponsibility(thisMethod);
+		^nil;
 	}
 
 	*typeToClass{arg val;
@@ -18,7 +18,7 @@ VTMValue {
 	}
 
 	*type{
-		this.subclassResponsibility(thisMethod);
+		\none;
 	}
 
 	type{
