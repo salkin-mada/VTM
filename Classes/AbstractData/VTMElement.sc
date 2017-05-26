@@ -127,5 +127,39 @@ VTMElement : VTMAbstractData {
 	signals{
 		^signals.items.keys;
 	}
+
+	addForwarding{arg key, compName, itemName,  addr, path, vtmJson = false;
+		var comp = switch(compName, 
+			\attributes, {attributes},
+			\returns, {returns}
+		);
+		comp.addForwarding(key, itemName, addr, path, vtmJson);
+	}
+
+	removeForwarding{arg key, compName, itemName;
+		var comp = switch(compName, 
+			\attributes, {attributes},
+			\returns, {returns}
+		);
+		comp.removeForwarding(key, itemName);
+	}
+
+	removeAllForwardings{
+		this.components.do({arg comp;
+			comp.removeAllForwarding;
+		});
+	}
+
+	enableForwarding{
+		this.components.do({arg comp;
+			comp.enableForwarding;
+		});
+	}
+
+	disableForwarding{
+		this.components.do({arg comp;
+			comp.disableForwarding;
+		});
+	}
 }
 

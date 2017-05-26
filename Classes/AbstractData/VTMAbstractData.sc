@@ -67,10 +67,12 @@ VTMAbstractData{
 	}
 
 	disable{
+		this.disableForwarding;
 		this.disableOSC;
 	}
 
 	enable{
+		this.enableForwarding;
 		this.enableOSC;
 	}
 
@@ -79,6 +81,26 @@ VTMAbstractData{
 		this.releaseDependants;
 		parameters = nil;
 		manager = nil;
+	}
+
+	addForwarding{arg key, addr, path, vtmJson = false;
+		this.subclassResponsibility(thisMethod);
+	}
+
+	removeForwarding{arg key;
+		this.subclassResponsibility(thisMethod);
+	}
+
+	removeAllForwardings{
+		this.subclassResponsibility(thisMethod);
+	}
+
+	enableForwarding{
+		this.subclassResponsibility(thisMethod);
+	}
+
+	disableForwarding{
+		this.subclassResponsibility(thisMethod);
 	}
 
 	*parameterKeys{
@@ -149,6 +171,7 @@ VTMAbstractData{
 	}
 
 	disableOSC{
+		//this.disableForwarding;//TODO: iter here
 		if(oscInterface.notNil, { oscInterface.free;});
 		oscInterface = nil;
 	}

@@ -134,4 +134,31 @@ VTMAbstractDataManager {
 		^result;
 	}
 
+	addForwarding{arg key, itemName, addr, path, vtmJson = false;
+		var item = items[itemName];
+		item.addForwarding(key, addr, path, vtmJson);
+	}
+
+	removeForwarding{arg key, itemName;
+		var item = items[itemName];
+		item.removeForwarding(key);
+	}
+
+	removeAllForwardings{
+		items.do({arg item;
+			item.removeAllForwarding;
+		});
+	}
+
+	enableForwarding{
+		items.do({arg item;
+			item.enableForwarding;
+		});
+	}
+
+	disableForwarding{
+		items.do({arg item;
+			item.disableForwarding;
+		});
+	}
 }

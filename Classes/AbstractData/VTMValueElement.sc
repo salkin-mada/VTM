@@ -50,6 +50,27 @@ VTMValueElement : VTMAbstractData {
 		forwarder.remove(\value);
 		valueObj.release;
 		valueObj = nil;
+		super.free;
+	}
+
+	addForwarding{arg key, addr, path, vtmJson = false;
+		//Observe value object for changng values
+		forwardings.put(key, (addr: addr, path: path, vtmJson: vtmJson));
+	}
+
+	removeForwarding{arg key;
+		forwardings.removeAt(key);
+	}
+
+	removeAllForwardings{
+		forwardings.clear;
+	}
+
+	disableForwarding{
+		forwarder.remove(\value);
+		forwarder.clear;
+		forwarder = nil;
+		super.disableForwarding;
 	}
 
 	type{
@@ -76,23 +97,14 @@ VTMValueElement : VTMAbstractData {
 		^result;
 	}
 
-	addForwarding{arg key, addr, path, vtmJson = false;
-		//Observe value object for changng values
-		forwardings.put(key, (addr: addr, path: path, vtmJson: vtmJson));
+	disable{
+		super.disable;
+		valueObj.disable;
 	}
 
-	removeForwarding{arg key;
-		forwardings.removeAt(key);
-	}
-
-	removeAllForwardings{
-		forwardings.clear;
-	}
-
-	disableForwarding{
-		forwarder.remove(\value);
-		forwarder.clear;
-		forwarder = nil;
+	enable{
+		super.enable;
+		valueObj.enable;
 	}
 
 	enableForwarding{
@@ -109,17 +121,4 @@ VTMValueElement : VTMAbstractData {
 			});
 		});
 	}
-
-	disable{
-		super.disable;
-		this.disableForwarding;
-		valueObj.disable;
-	}
-
-	enable{
-		super.enable;
-		this.enableForwarding;
-		valueObj.enable;
-	}
-
 }
