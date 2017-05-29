@@ -70,7 +70,6 @@ VTMValueElement : VTMAbstractData {
 		forwarder.remove(\value);
 		forwarder.clear;
 		forwarder = nil;
-		super.disableForwarding;
 	}
 
 	type{
