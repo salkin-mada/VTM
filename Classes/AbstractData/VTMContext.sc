@@ -36,12 +36,6 @@ VTMContext : VTMElement {
 		//TODO: Will there problems when one class is listed as manager
 		//for multiple type of objects, in the case of Context/LocalNetworkNode?
 		manager = manager ? VTM.local.findManagerForContextClass(this);
-		//If the manager has already registered a context of this name then
-		//we free the old context.
-		//TODO: See if this need to be scheduled/synced in some way.
-		if(manager.hasItemNamed(name), {
-			manager.freeItem(name);
-		});
 		^super.new(name, declaration, manager).initContext(def);
 	}
 
@@ -133,36 +127,20 @@ VTMContext : VTMElement {
 		};
 	}
 
-	run{arg condition, action;
-		forkIfNeeded{
-			var cond = condition ?? {Condition.new};
-			this.prChangeState(\willRun);
-			if(envir.includesKey(\run), {
-				this.execute(\run, cond);
-			});
-			this.components.do({arg it; it.run(cond)});
-			this.prChangeState(\didRun);
-			action.value(this);
-		};
-	}
-
 	free{arg condition, action;
+		//the stuff that needs to be freed in the envir will happen
+		//in a separate thread. Everything else happens synchronously.
+		this.prChangeState(\willFree);
+		super.free;
 		forkIfNeeded{
 			var cond = condition ?? {Condition.new};
-			this.prChangeState(\willFree);
+
 			if(envir.includesKey(\free), {
 				this.execute(\free, cond);
 			});
-			this.disableOSC;
-			//			children.keysValuesDo({arg key, child;
-			//				child.free(key, cond);
-			//			});
-			this.components.do({arg it; it.free(cond)});
 			this.prChangeState(\didFree);
 			action.value(this);
-			this.release; //Release this as dependant from other objects.
 			definition = nil;
-			super.free;
 		};
 	}
 
