@@ -82,6 +82,7 @@ VTMAbstractData {
 	free{
 		this.disableOSC;
 		this.releaseDependants;
+		this.release;
 		parameters = nil;
 		manager = nil;
 	}
