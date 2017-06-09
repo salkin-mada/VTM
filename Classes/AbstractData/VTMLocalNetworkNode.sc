@@ -3,7 +3,9 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	classvar <singleton;
 	classvar <hostname;
 	classvar <discoveryBroadcastPort = 57200;
-	classvar <remoteNetworkNodes;
+	classvar <broadcastIPs;
+	var <localNetworks;
+	var <remoteNetworkNodes;
 	var discoveryReplyResponder;
 	var <networkNodeManager;
 	var <hardwareSetup;
@@ -34,36 +36,42 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		NetAddr.broadcastFlag = true;
 	}
 
-	activate{arg val, discovery = false;
+	activate{arg discovery = false;
 
 		if(discoveryReplyResponder.isNil, {
 			discoveryReplyResponder = OSCFunc({arg msg, time, resp, addr;
 				var jsonData = VTMJSON.parse(msg[1]);
-				var senderHostName, netAddr, registered = false;
-				senderHostName = jsonData["hostname"];
+				var senderHostname, netAddr, registered = false;
+				senderHostname = jsonData["hostname"];
 				topEnvironment[\jsonData] = jsonData;
 				netAddr = NetAddr.newFromIPString(jsonData["addr"].asString);
-				"We got a discovery message: % %".format(senderHostName, netAddr).postln;
+				"We got a discovery message: % %".format(senderHostname, netAddr).postln;
 				"The local Addr: %".format(this.getLocalAddr).postln;
 
-				if(netAddr != this.getLocalAddr, {
-					var registered;
-					registered = this.class.remoteNetworkNodes.includesKey(senderHostName);
-					if(registered.not)
-					{
-						"Registering new network node: %".format([senderHostName, netAddr]).postln;
-						networkNodeManager.addItemsFromItemDeclarations([
-							netAddr.generateIPString.asSymbol -> (hostname: hostname)
-						]);
-						this.discover(netAddr);
-					};
+				if(localNetworks.any({arg item; item.addr == netAddr;}), {
+					"IT WAS LOCAL, ignoring it!".postln;
 				}, {
-					"Got broadcastfrom local network node: %".format(this.getLocalAddr).postln;
+					//a remote network node sent discovery
+					var isAlreadyRegistered;
+					isAlreadyRegistered = this.remoteNetworkNodes.includesKey(senderHostname);
+					if(isAlreadyRegistered.not)
+					{
+						"Registering new network node: %".format([senderHostname, netAddr]).postln;
+						networkNodeManager.addItemsFromItemDeclarations([
+							netAddr.generateIPString.asSymbol -> (hostname: senderHostname)
+						]);
+						// this.discover(netAddr);
+					};
+
 				});
+				// }, {
+				// "Got broadcastfrom local network node: %".format(this.getLocalAddr).postln;
+				// });
 
 			}, '/discovery', recvPort: this.class.discoveryBroadcastPort);
 
 		});
+		this.findLocalNetworks;
 
 		if(discovery) { this.discover(); }
 	}
@@ -92,7 +100,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 
 		var addr_list = Platform.case(
 			\osx, { Pipe(
-				"ifconfig | grep 'inet' | awk '{print $2}'", "r") },
+				"ifconfig | grep '\<inet\>' | awk '{print $2}'", "r") },
 			\linux, { Pipe (
 				"/sbin/ifconfig | grep 'inet addr' | cut -d: -f2 | awk '{print $1}'","r")},
 			\windows, {}
@@ -129,6 +137,55 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		^NetAddr(this.getLocalIp, NetAddr.localAddr.port);
 	}
 
+	findLocalNetworks{
+		var lines, entries;
+		lines = "ifconfig".unixCmdGetStdOutLines;
+		//clump into separate network interface entries
+		lines.collect({arg line;
+			if(line.first != Char.tab, {
+				entries = entries.add([line]);
+			}, {
+				entries[entries.size - 1] = entries[entries.size - 1].add(line);
+			});
+		});
+		//remove the entries that don't have any extra information
+		entries = entries.reject({arg item; item.size == 1});
+		//remove the LOOPBACK entry(ies)
+		entries = entries.reject({arg item;
+			"[,<]?LOOPBACK[,>]?".matchRegexp(item.first);
+		});
+		//get only the active entries
+		entries = entries.reject({arg item;
+			item.any{arg jtem;
+				"status: inactive".matchRegexp(jtem);
+			}
+		});
+		//get only the lines with IPV4 addresses
+		entries = entries.collect({arg item;
+			item.detect{arg jtem;
+				"\\<inet\\>".matchRegexp(jtem);
+			}
+		});
+		//remove all that are nil
+		entries = entries.reject(_.isNil);
+
+		//separate the addresses
+		entries.collect({arg item;
+			var ip, bcast;
+
+			ip = item.copy.split(Char.space)[1];
+			bcast = item.findRegexp("broadcast (.+)");
+			bcast = bcast !? {bcast[1][1];};
+			(
+				ip: ip,
+				broadcast: bcast
+			)
+		}).collect({arg item;
+			localNetworks = localNetworks.add(VTMLocalNetwork.performWithEnvir(\new, item));
+		});
+
+	}
+
 	name{
 		^this.getLocalAddr.generateIPString;
 	}
@@ -138,31 +195,34 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	}
 
 	discover {arg destinationAddr;
+		//Broadcast discover to all network connections
+		if(localNetworks.isNil, { ^this; });
+		localNetworks.do({arg network;
+			var data, targetAddr;
 
-		var data, targetAddr;
-
-		data = (
-			hostname: hostname,
-			addr: NetAddr(this.getLocalIp, NetAddr.localAddr.port).generateIPString
-		);
-
-		// if the method argument is nil, the message is broadcasted
-
-		if(destinationAddr.isNil(), {
-			targetAddr = NetAddr(
-				this.getBroadcastIp,
-				this.class.discoveryBroadcastPort
+			data = (
+				hostname: hostname,
+				addr: NetAddr(network.ip, NetAddr.localAddr.port).generateIPString
 			);
-		}, {
-			targetAddr = destinationAddr;
-		});
 
-		//Makes the responder if not already made
-		discoveryReplyResponder.value;
-		this.sendMsg(
-			targetAddr.hostname, this.class.discoveryBroadcastPort, '/discovery', data
-		);
-		postln([targetAddr.hostname, targetAddr.port, '/discovery', data]);
+			// if the method argument is nil, the message is broadcasted
+
+			if(destinationAddr.isNil, {
+				targetAddr = NetAddr(
+					network.broadcast,
+					this.class.discoveryBroadcastPort
+				);
+			}, {
+				targetAddr = destinationAddr;
+			});
+
+			//Makes the responder if not already made
+			discoveryReplyResponder.value;
+			this.sendMsg(
+				targetAddr.hostname, targetAddr.port, '/discovery', data
+			);
+			postln([targetAddr.hostname, targetAddr.port, '/discovery', data]);
+		});
 	}
 
 	*leadingSeparator { ^$/; }
