@@ -59,7 +59,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 						networkNodeManager.addItemsFromItemDeclarations([
 							senderIPString.asSymbol -> (hostname: senderHostname)
 						]);
-						// this.discover(netAddr);
+						this.discover(netAddr.port_(this.class.discoveryBroadcastPort));
 					};
 
 				});
