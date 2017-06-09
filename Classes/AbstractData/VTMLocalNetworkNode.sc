@@ -5,7 +5,6 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	classvar <discoveryBroadcastPort = 57200;
 	classvar <broadcastIPs;
 	var <localNetworks;
-	var <remoteNetworkNodes;
 	var discoveryReplyResponder;
 	var <networkNodeManager;
 	var <hardwareSetup;
@@ -46,19 +45,19 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				topEnvironment[\jsonData] = jsonData;
 				netAddr = NetAddr.newFromIPString(jsonData["addr"].asString);
 				"We got a discovery message: % %".format(senderHostname, netAddr).postln;
-				"The local Addr: %".format(this.getLocalAddr).postln;
 
 				if(localNetworks.any({arg item; item.addr == netAddr;}), {
 					"IT WAS LOCAL, ignoring it!".postln;
 				}, {
 					//a remote network node sent discovery
 					var isAlreadyRegistered;
-					isAlreadyRegistered = this.remoteNetworkNodes.includesKey(senderHostname);
+					var senderIPString = netAddr.generateIPString.asSymbol;
+					isAlreadyRegistered = networkNodeManager.hasItemNamed(senderIPString);
 					if(isAlreadyRegistered.not)
 					{
 						"Registering new network node: %".format([senderHostname, netAddr]).postln;
 						networkNodeManager.addItemsFromItemDeclarations([
-							netAddr.generateIPString.asSymbol -> (hostname: senderHostname)
+							senderIPString.asSymbol -> (hostname: senderHostname)
 						]);
 						// this.discover(netAddr);
 					};
