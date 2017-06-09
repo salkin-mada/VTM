@@ -13,7 +13,7 @@ VTMContext : VTMElement {
 
 	classvar <viewClassSymbol = 'VTMContextView';
 
-	*new{arg name, declaration, manager, definition;
+	*new{arg name, declaration, manager, definition, prototypes;
 		var def;
 		/*
 		A definition is mandatory for making a Context.
@@ -36,7 +36,7 @@ VTMContext : VTMElement {
 		//TODO: Will there problems when one class is listed as manager
 		//for multiple type of objects, in the case of Context/LocalNetworkNode?
 		manager = manager ? VTM.local.findManagerForContextClass(this);
-		^super.new(name, declaration, manager).initContext(def);
+		^super.new(name, declaration, manager).initContext(def, prototypes);
 	}
 
 	initContext{arg definition_;
