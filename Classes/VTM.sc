@@ -14,8 +14,8 @@ VTM{
 		);
 	}
 
-	*activate{arg val, discovery = false;
-		this.local.activate(val, discovery);
+	*activate{arg discovery = false;
+		this.local.activate(discovery);
 	}
 
 	*deactivate{
