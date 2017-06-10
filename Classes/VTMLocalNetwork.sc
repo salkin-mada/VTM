@@ -2,10 +2,11 @@
 VTMLocalNetwork{
 	var <ip;
 	var <broadcast;
+	var <mac;
 	var <addr;
 
-	*new{arg ip, broadcast;
-		^super.newCopyArgs(ip, broadcast).init;
+	*new{arg ip, broadcast, mac;
+		^super.newCopyArgs(ip, broadcast, mac).init;
 	}
 
 	init{

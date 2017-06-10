@@ -159,25 +159,37 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				"status: inactive".matchRegexp(jtem);
 			}
 		});
-		//get only the lines with IPV4 addresses
+		//get only the lines with IPV4 addresses and
 		entries = entries.collect({arg item;
-			item.detect{arg jtem;
+			var inetLine, hwLine;
+			inetLine = item.detect{arg jtem;
 				"\\<inet\\>".matchRegexp(jtem);
-			}
+			};
+			if(inetLine.notNil, {
+				hwLine = item.detect{arg jtem;
+					"\\<ether\\>".matchRegexp(jtem);
+				}
+			});
+			[inetLine, hwLine];
 		});
 		//remove all that are nil
-		entries = entries.reject(_.isNil);
+		entries = entries.reject({arg jtem; jtem.first.isNil; });
 
 		//separate the addresses
 		entries.collect({arg item;
-			var ip, bcast;
+			var ip, bcast, mac;
+			var inetLine, hwLine;
+			#inetLine, hwLine = item;
 
-			ip = item.copy.split(Char.space)[1];
-			bcast = item.findRegexp("broadcast (.+)");
+			ip = inetLine.copy.split(Char.space)[1];
+			bcast = inetLine.findRegexp("broadcast (.+)");
 			bcast = bcast !? {bcast[1][1];};
+			mac = hwLine.findRegexp("ether (.+)");
+			mac = mac !? {mac[1][1]};
 			(
 				ip: ip,
-				broadcast: bcast
+				broadcast: bcast,
+				mac: mac
 			)
 		}).collect({arg item;
 			localNetworks = localNetworks.add(VTMLocalNetwork.performWithEnvir(\new, item));
