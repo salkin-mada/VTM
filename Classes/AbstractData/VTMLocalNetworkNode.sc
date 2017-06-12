@@ -44,7 +44,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 			discoveryReplyResponder = OSCFunc({arg msg, time, resp, addr;
 				var jsonData = VTMJSON.parse(msg[1]).changeScalarValuesToDataTypes;
 				var senderHostname, senderAddr, registered = false;
-				senderHostname = jsonData['hostname'];
+				senderHostname = jsonData['hostname'].asSymbol;
 				senderAddr = NetAddr.newFromIPString(jsonData['addr'].asString);
 				"We got a discovery message: % %".format(senderHostname, senderAddr).postln;
 
@@ -55,13 +55,18 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 					var isAlreadyRegistered;
 					isAlreadyRegistered = networkNodeManager.hasItemNamed(senderHostname);
 					if(isAlreadyRegistered.not, {
+						var newNetworkNode;
 						"Registering new network node: %".format([senderHostname, senderAddr]).postln;
-						networkNodeManager.addItemsFromItemDeclarations([
-							senderHostname.asSymbol ->  (addr: jsonData['addr'].asString)
-						]);
-						this.discover(senderAddr.port_(this.class.discoveryBroadcastPort));
+						newNetworkNode = VTMRemoteNetworkNode(
+							senderHostname,
+							(
+								addr: jsonData['addr'].asString,
+								mac: jsonData['mac'].asString
+							),
+							networkNodeManager
+						);
+						newNetworkNode.discover;
 					});
-
 				});
 			}, '/discovery', recvPort: this.class.discoveryBroadcastPort);
 		});
@@ -283,7 +288,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		^'/';
 	}
 
-	discover {arg destinationAddr;
+	discover {arg targetHostname;
 		//Broadcast discover to all network connections
 		if(localNetworks.isNil, { ^this; });
 		localNetworks.do({arg network;
@@ -291,18 +296,19 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 
 			data = (
 				hostname: this.hostname,
-				addr: network.addr.generateIPString
+				addr: network.addr.generateIPString,
+				mac: network.mac
 			);
 
 			// if the method argument is nil, the message is broadcasted
 
-			if(destinationAddr.isNil, {
+			if(targetHostname.isNil, {
 				targetAddr = NetAddr(
 					network.broadcast,
 					this.class.discoveryBroadcastPort
 				);
 			}, {
-				targetAddr = destinationAddr;
+				targetAddr = NetAddr(targetHostname, this.class.discoveryBroadcastPort);
 			});
 
 			//Makes the responder if not already made

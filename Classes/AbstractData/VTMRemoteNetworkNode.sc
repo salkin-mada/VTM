@@ -13,7 +13,16 @@ VTMRemoteNetworkNode : VTMElement {
 
 	*parameterDescriptions{
 		^super.parameterDescriptions.putAll(VTMOrderedIdentityDictionary[
-			\addr -> (type: \string, optional: false)
+			\addr -> (type: \string, optional: false),
+			\mac -> (type: \string, optional: false)
 		]);
+	}
+
+	sendMsg{arg path ...args;
+		VTM.sendMsg(addr.hostname, addr.port, path, *args);
+	}
+
+	discover{
+		VTM.local.discover(addr.hostname);
 	}
 }
