@@ -4,6 +4,7 @@ VTMLocalNetwork{
 	var <broadcast;
 	var <mac;
 	var <addr;
+	var <broadcastAddr;
 
 	*new{arg ip, broadcast, mac;
 		^super.newCopyArgs(ip, broadcast, mac).init;
@@ -11,5 +12,6 @@ VTMLocalNetwork{
 
 	init{
 		addr = NetAddr(ip, NetAddr.localAddr.port);
+		broadcastAddr = NetAddr(broadcast, VTMLocalNetworkNode.discoveryBroadcastPort);
 	}
 }

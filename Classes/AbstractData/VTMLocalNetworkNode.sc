@@ -31,6 +31,10 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		sceneOwner = VTMSceneOwner.new(this);
 		scoreManager = VTMScoreManager.new(this);
 		hostname = Pipe("hostname", "r").getLine();
+		if(".local$".matchRegexp(hostname), {
+			hostname = hostname.drop(-6);
+		});
+		this.findLocalNetworks;
 		NetAddr.broadcastFlag = true;
 	}
 
@@ -77,10 +81,10 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	getBroadcastIp {
 		^Platform.case(
 			\osx, { unixCmdGetStdOut(
-				"ifconfig | grep broadcast | awk '{print $NF}'") 
+				"ifconfig | grep broadcast | awk '{print $NF}'")
 			},
 			\windows, { unixCmdGetStdOut(
-				"ifconfig | grep broadcast | awk '{print $NF}'") 
+				"ifconfig | grep broadcast | awk '{print $NF}'")
 			},
 			\linux, { unixCmdGetStdOut(
 				"/sbin/ifconfig | grep Bcast | awk 'BEGIN {FS = \"[ :]+\"}{print $6}'").stripWhiteSpace()
@@ -95,7 +99,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 
 		var addr_list = Platform.case(
 			\osx, { Pipe(
-				"ifconfig | grep '\<inet\>' | awk '{print $2}'", "r") 
+				"ifconfig | grep '\<inet\>' | awk '{print $2}'", "r")
 			},
 			\linux, { Pipe (
 				"/sbin/ifconfig | grep 'inet addr' | cut -d: -f2 | awk '{print $1}'","r")
@@ -253,81 +257,81 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 					}, {
 						"Did not find IP and broadcast for %".format(
 							String.newFrom(entry.flat)).postln;
-						});
-						result = result.add(entryData);
-					};
-					if(result.notNil, {
-						result.do({arg item;
-							localNetworks = localNetworks.add(
-								VTMLocalNetwork.performWithEnvir(\new, item)
-							);
-						});
 					});
-				},
-				\windows, {
-					"No find local network method for Windows yet!".warn;
-				}
+					result = result.add(entryData);
+				};
+				if(result.notNil, {
+					result.do({arg item;
+						localNetworks = localNetworks.add(
+							VTMLocalNetwork.performWithEnvir(\new, item)
+						);
+					});
+				});
+			},
+			\windows, {
+				"No find local network method for Windows yet!".warn;
+			}
+		);
+
+
+
+	}
+
+	name{
+		^this.getLocalAddr.generateIPString;
+	}
+
+	fullPath{
+		^'/';
+	}
+
+	discover {arg destinationAddr;
+		//Broadcast discover to all network connections
+		if(localNetworks.isNil, { ^this; });
+		localNetworks.do({arg network;
+			var data, targetAddr;
+
+			data = (
+				hostname: this.hostname,
+				ip: network.addr
 			);
 
+			// if the method argument is nil, the message is broadcasted
 
-
-		}
-
-		name{
-			^this.getLocalAddr.generateIPString;
-		}
-
-		fullPath{
-			^'/';
-		}
-
-		discover {arg destinationAddr;
-			//Broadcast discover to all network connections
-			if(localNetworks.isNil, { ^this; });
-			localNetworks.do({arg network;
-				var data, targetAddr;
-
-				data = (
-					hostname: this.hostname,
-					addr: NetAddr(network.ip, NetAddr.localAddr.port).generateIPString
+			if(destinationAddr.isNil, {
+				targetAddr = NetAddr(
+					network.broadcast,
+					this.class.discoveryBroadcastPort
 				);
-
-				// if the method argument is nil, the message is broadcasted
-
-				if(destinationAddr.isNil, {
-					targetAddr = NetAddr(
-						network.broadcast,
-						this.class.discoveryBroadcastPort
-					);
-				}, {
-					targetAddr = destinationAddr;
-				});
-
-				//Makes the responder if not already made
-				discoveryReplyResponder.value;
-				this.sendMsg(
-					targetAddr.hostname, targetAddr.port, '/discovery', data
-				);
-				postln([targetAddr.hostname, targetAddr.port, '/discovery', data]);
+			}, {
+				targetAddr = destinationAddr;
 			});
-		}
 
-		*leadingSeparator { ^$/; }
-
-		sendMsg{arg targetHostname, port, path ...data;
-			//sending eeeeverything as typed YAML for now.
-			NetAddr(targetHostname, port).sendMsg(path, VTMJSON.stringify(data.unbubble));
-		}
-
-		findManagerForContextClass{arg class;
-			var managerObj;
-			case
-			{class.isKindOf(VTMModule.class) } {managerObj =  moduleHost; }
-			{class.isKindOf(VTMHardwareDevice.class) } {managerObj =  hardwareSetup; }
-			{class.isKindOf(VTMScene.class) } {managerObj =  sceneOwner; }
-			{class.isKindOf(VTMScore.class) } {managerObj =  scoreManager; };
-			"DID I Find: % \n\t%".format(managerObj, class).postln;
-			^managerObj;
-		}
+			//Makes the responder if not already made
+			discoveryReplyResponder.value;
+			this.sendMsg(
+				targetAddr.hostname, targetAddr.port, '/discovery', data
+			);
+			postln([targetAddr.hostname, targetAddr.port, '/discovery', data]);
+		});
 	}
+
+	*leadingSeparator { ^$/; }
+
+	sendMsg{arg targetHostname, port, path ...data;
+		//sending eeeeverything as typed YAML for now.
+		NetAddr(targetHostname, port).sendMsg(path, VTMJSON.stringify(data.unbubble));
+	}
+
+	findManagerForContextClass{arg class;
+		var managerObj;
+		case
+		{class.isKindOf(VTMModule.class) } {managerObj =  moduleHost; }
+		{class.isKindOf(VTMHardwareDevice.class) } {managerObj =  hardwareSetup; }
+		{class.isKindOf(VTMScene.class) } {managerObj =  sceneOwner; }
+		{class.isKindOf(VTMScore.class) } {managerObj =  scoreManager; };
+		"DID I Find: % \n\t%".format(managerObj, class).postln;
+		^managerObj;
+	}
+}
 
