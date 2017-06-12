@@ -70,7 +70,6 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				});
 			}, '/discovery', recvPort: this.class.discoveryBroadcastPort);
 		});
-		this.findLocalNetworks;
 
 		if(discovery) { this.discover(); }
 	}
@@ -143,6 +142,9 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 
 	findLocalNetworks{
 		var lines, entries;
+
+		//delete previous local networks
+		localNetworks = [];
 		lines = "ifconfig".unixCmdGetStdOutLines;
 		//clump into separate network interface entries
 
@@ -311,8 +313,6 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				targetAddr = NetAddr(targetHostname, this.class.discoveryBroadcastPort);
 			});
 
-			//Makes the responder if not already made
-			discoveryReplyResponder.value;
 			this.sendMsg(
 				targetAddr.hostname, targetAddr.port, '/discovery', data
 			);
