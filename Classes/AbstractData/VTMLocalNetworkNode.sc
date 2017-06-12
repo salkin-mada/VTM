@@ -52,22 +52,16 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 					var isAlreadyRegistered;
 					var senderIPString = netAddr.generateIPString.asSymbol;
 					isAlreadyRegistered = networkNodeManager.hasItemNamed(senderIPString);
-					if(isAlreadyRegistered.not)
-					{
+					if(isAlreadyRegistered.not, {
 						"Registering new network node: %".format([senderHostname, netAddr]).postln;
 						networkNodeManager.addItemsFromItemDeclarations([
-							senderIPString.asSymbol -> (hostname: senderHostname)
+							senderHostname.asSymbol ->  (ip: senderIPString)
 						]);
 						this.discover(netAddr.port_(this.class.discoveryBroadcastPort));
-					};
+					});
 
 				});
-				// }, {
-				// "Got broadcastfrom local network node: %".format(this.getLocalAddr).postln;
-				// });
-
 			}, '/discovery', recvPort: this.class.discoveryBroadcastPort);
-
 		});
 		this.findLocalNetworks;
 
@@ -83,11 +77,14 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	getBroadcastIp {
 		^Platform.case(
 			\osx, { unixCmdGetStdOut(
-				"ifconfig | grep broadcast | awk '{print $NF}'") },
+				"ifconfig | grep broadcast | awk '{print $NF}'") 
+			},
 			\windows, { unixCmdGetStdOut(
-				"ifconfig | grep broadcast | awk '{print $NF}'") },
+				"ifconfig | grep broadcast | awk '{print $NF}'") 
+			},
 			\linux, { unixCmdGetStdOut(
-				"/sbin/ifconfig | grep Bcast | awk 'BEGIN {FS = \"[ :]+\"}{print $6}'").stripWhiteSpace()}
+				"/sbin/ifconfig | grep Bcast | awk 'BEGIN {FS = \"[ :]+\"}{print $6}'").stripWhiteSpace()
+			}
 		);
 	}
 
@@ -98,9 +95,11 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 
 		var addr_list = Platform.case(
 			\osx, { Pipe(
-				"ifconfig | grep '\<inet\>' | awk '{print $2}'", "r") },
+				"ifconfig | grep '\<inet\>' | awk '{print $2}'", "r") 
+			},
 			\linux, { Pipe (
-				"/sbin/ifconfig | grep 'inet addr' | cut -d: -f2 | awk '{print $1}'","r")},
+				"/sbin/ifconfig | grep 'inet addr' | cut -d: -f2 | awk '{print $1}'","r")
+			},
 			\windows, {}
 		);
 
@@ -139,16 +138,16 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		var lines, entries;
 		lines = "ifconfig".unixCmdGetStdOutLines;
 		//clump into separate network interface entries
-		lines.collect({arg line;
-			if(line.first != Char.tab, {
-				entries = entries.add([line]);
-			}, {
-				entries[entries.size - 1] = entries[entries.size - 1].add(line);
-			});
-		});
 
 		Platform.case(
 			\osx, {
+				lines.collect({arg line;
+					if(line.first != Char.tab, {
+						entries = entries.add([line]);
+					}, {
+						entries[entries.size - 1] = entries[entries.size - 1].add(line);
+					});
+				});
 				//remove the entries that don't have any extra information
 				entries = entries.reject({arg item; item.size == 1});
 				//remove the LOOPBACK entry(ies)
@@ -157,20 +156,20 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				});
 				//get only the active entries
 				entries = entries.reject({arg item;
-					item.any{arg jtem;
+					item.any({arg jtem;
 						"status: inactive".matchRegexp(jtem);
-					}
+					})
 				});
 				//get only the lines with IPV4 addresses and
 				entries = entries.collect({arg item;
 					var inetLine, hwLine;
-					inetLine = item.detect{arg jtem;
+					inetLine = item.detect({arg jtem;
 						"\\<inet\\>".matchRegexp(jtem);
-					};
+					});
 					if(inetLine.notNil, {
-						hwLine = item.detect{arg jtem;
+						hwLine = item.detect({arg jtem;
 							"\\<ether\\>".matchRegexp(jtem);
-						}
+						})
 					});
 					[inetLine, hwLine];
 				});
@@ -189,14 +188,16 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 					mac = hwLine.findRegexp("ether (.+)");
 					mac = mac !? {mac[1][1]};
 					(
-						ip: ip,
-						broadcast: bcast,
-						mac: mac
+						ip: ip.stripWhiteSpace,
+						broadcast: bcast.stripWhiteSpace,
+						mac: mac.stripWhiteSpace
 					)
 				}).collect({arg item;
 					localNetworks = localNetworks.add(VTMLocalNetwork.performWithEnvir(\new, item));
-			}); },
+				});
+			},
 			\linux, {
+				var result;
 				//"No find local network method ifr Linux yet!".warn;
 				//clump into separate network interface entries
 				lines.collect({arg line;
@@ -208,11 +209,11 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				});
 				//remove empty lines
 				entries = entries.reject{arg entry;
-					var result = false;
+					var lineIsEmpty = false;
 					if(entry.size == 1, {
-						result = entry.first.isString and: {entry.first.isEmpty};
+						lineIsEmpty = entry.first.isString and: {entry.first.isEmpty};
 					});
-					result;
+					lineIsEmpty;
 				};
 				//remove loopback device
 				entries = entries.reject{arg entry;
@@ -228,11 +229,10 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				entries.do{arg entry;
 					var mac, ip, broadcast;
 					var inetLine, entryData;
-					var result;
 					entryData = ();
 					mac = entry.first.findRegexp("HWaddr (.+)");
 					if(mac.notNil, {
-						entryData.put(\mac, mac[1][1]);
+						entryData.put(\mac, mac[1][1].stripWhiteSpace);
 					}, {
 						"Did not find MAC for entry: %".format(entry).warn;
 					});
@@ -243,8 +243,8 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 						var regx;
 						regx = inetLine.findRegexp("addr:(.+) Bcast:(.+) .+");
 						if(regx.notEmpty, {
-							entryData.put(\ip, regx[1][1]);
-							entryData.put(\broadcast, regx[2][1]);
+							entryData.put(\ip, regx[1][1].stripWhiteSpace);
+							entryData.put(\broadcast, regx[2][1].stripWhiteSpace);
 						}, {
 							"Could not parse inet line for %\n\t%".format(
 								entry.first, inetLine
@@ -257,76 +257,77 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 						result = result.add(entryData);
 					};
 					if(result.notNil, {
-						result.do{arg item;
+						result.do({arg item;
 							localNetworks = localNetworks.add(
-								VTMLocalNetwork.performWithEnvir(\new, item));
-							};
+								VTMLocalNetwork.performWithEnvir(\new, item)
+							);
 						});
-					},
-					\windows, {
-						"No find local network method for Windows yet!".warn;
-					}
+					});
+				},
+				\windows, {
+					"No find local network method for Windows yet!".warn;
+				}
+			);
+
+
+
+		}
+
+		name{
+			^this.getLocalAddr.generateIPString;
+		}
+
+		fullPath{
+			^'/';
+		}
+
+		discover {arg destinationAddr;
+			//Broadcast discover to all network connections
+			if(localNetworks.isNil, { ^this; });
+			localNetworks.do({arg network;
+				var data, targetAddr;
+
+				data = (
+					hostname: this.hostname,
+					addr: NetAddr(network.ip, NetAddr.localAddr.port).generateIPString
 				);
 
+				// if the method argument is nil, the message is broadcasted
 
-
-			}
-
-			name{
-				^this.getLocalAddr.generateIPString;
-			}
-
-			fullPath{
-				^'/';
-			}
-
-			discover {arg destinationAddr;
-				//Broadcast discover to all network connections
-				if(localNetworks.isNil, { ^this; });
-				localNetworks.do({arg network;
-					var data, targetAddr;
-
-					data = (
-						hostname: this.hostname,
-						addr: NetAddr(network.ip, NetAddr.localAddr.port).generateIPString
+				if(destinationAddr.isNil, {
+					targetAddr = NetAddr(
+						network.broadcast,
+						this.class.discoveryBroadcastPort
 					);
+				}, {
+					targetAddr = destinationAddr;
+				});
 
-					// if the method argument is nil, the message is broadcasted
-
-					if(destinationAddr.isNil, {
-						targetAddr = NetAddr(
-							network.broadcast,
-							this.class.discoveryBroadcastPort
-						);
-					}, {
-				targetAddr = destinationAddr;
+				//Makes the responder if not already made
+				discoveryReplyResponder.value;
+				this.sendMsg(
+					targetAddr.hostname, targetAddr.port, '/discovery', data
+				);
+				postln([targetAddr.hostname, targetAddr.port, '/discovery', data]);
 			});
+		}
 
-			//Makes the responder if not already made
-			discoveryReplyResponder.value;
-			this.sendMsg(
-				targetAddr.hostname, targetAddr.port, '/discovery', data
-			);
-			postln([targetAddr.hostname, targetAddr.port, '/discovery', data]);
-		});
+		*leadingSeparator { ^$/; }
+
+		sendMsg{arg targetHostname, port, path ...data;
+			//sending eeeeverything as typed YAML for now.
+			NetAddr(targetHostname, port).sendMsg(path, VTMJSON.stringify(data.unbubble));
+		}
+
+		findManagerForContextClass{arg class;
+			var managerObj;
+			case
+			{class.isKindOf(VTMModule.class) } {managerObj =  moduleHost; }
+			{class.isKindOf(VTMHardwareDevice.class) } {managerObj =  hardwareSetup; }
+			{class.isKindOf(VTMScene.class) } {managerObj =  sceneOwner; }
+			{class.isKindOf(VTMScore.class) } {managerObj =  scoreManager; };
+			"DID I Find: % \n\t%".format(managerObj, class).postln;
+			^managerObj;
+		}
 	}
-
-	*leadingSeparator { ^$/; }
-
-	sendMsg{arg targetHostname, port, path ...data;
-		//sending eeeeverything as typed YAML for now.
-		NetAddr(targetHostname, port).sendMsg(path, VTMJSON.stringify(data.unbubble));
-	}
-
-	findManagerForContextClass{arg class;
-		var managerObj;
-		case
-		{class.isKindOf(VTMModule.class) } {managerObj =  moduleHost; }
-		{class.isKindOf(VTMHardwareDevice.class) } {managerObj =  hardwareSetup; }
-		{class.isKindOf(VTMScene.class) } {managerObj =  sceneOwner; }
-		{class.isKindOf(VTMScore.class) } {managerObj =  scoreManager; };
-		"DID I Find: % \n\t%".format(managerObj, class).postln;
-		^managerObj;
-	}
-}
 
