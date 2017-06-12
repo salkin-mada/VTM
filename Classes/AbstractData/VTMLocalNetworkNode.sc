@@ -1,9 +1,9 @@
 //a Singleton class that communicates with the network and manages Applications
 VTMLocalNetworkNode : VTMAbstractDataManager {
 	classvar <singleton;
-	classvar <hostname;
 	classvar <discoveryBroadcastPort = 57200;
 	classvar <broadcastIPs;
+	var <hostname;
 	var <localNetworks;
 	var discoveryReplyResponder;
 	var <networkNodeManager;
@@ -17,7 +17,6 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	*initClass{
 		Class.initClassTree(VTMAbstractData);
 		Class.initClassTree(VTMNetworkNodeManager);
-		hostname = Pipe("hostname", "r").getLine();
 		singleton = super.new.initLocalNetworkNode;
 	}
 
@@ -31,7 +30,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		moduleHost = VTMModuleHost.new(this);
 		sceneOwner = VTMSceneOwner.new(this);
 		scoreManager = VTMScoreManager.new(this);
-
+		hostname = Pipe("hostname", "r").getLine();
 		NetAddr.broadcastFlag = true;
 	}
 
@@ -212,7 +211,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 			var data, targetAddr;
 
 			data = (
-				hostname: hostname,
+				hostname: this.hostname,
 				addr: NetAddr(network.ip, NetAddr.localAddr.port).generateIPString
 			);
 
@@ -238,9 +237,9 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 
 	*leadingSeparator { ^$/; }
 
-	sendMsg{arg hostname, port, path ...data;
+	sendMsg{arg targetHostname, port, path ...data;
 		//sending eeeeverything as typed YAML for now.
-		NetAddr(hostname, port).sendMsg(path, VTMJSON.stringify(data.unbubble));
+		NetAddr(targetHostname, port).sendMsg(path, VTMJSON.stringify(data.unbubble));
 	}
 
 	findManagerForContextClass{arg class;
