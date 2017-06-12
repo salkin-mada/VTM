@@ -6,6 +6,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	var <hostname;
 	var <localNetworks;
 	var discoveryReplyResponder;
+	var remoteActivateResponder;
 	var <networkNodeManager;
 	var <hardwareSetup;
 	var <moduleHost;
@@ -36,9 +37,20 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		});
 		this.findLocalNetworks;
 		NetAddr.broadcastFlag = true;
+		StartUp.add({
+			//Make remote activate responder
+			remoteActivateResponder = OSCFunc({arg msg, time, addr, port;
+				var hostnames = msg[1..];
+				if(hostnames.any({arg item;
+					item.asSymbol == this.hostname
+				}), {
+					this.activate(discover: true);
+				})
+			}, '/activate', recvPort: this.class.discoveryBroadcastPort);
+		});
 	}
 
-	activate{arg discovery = false;
+	activate{arg discovery = false, remoteNetworkNodesToActivate;
 
 		if(discoveryReplyResponder.isNil, {
 			discoveryReplyResponder = OSCFunc({arg msg, time, resp, addr;
@@ -70,8 +82,13 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				});
 			}, '/discovery', recvPort: this.class.discoveryBroadcastPort);
 		});
+		this.activateRemoteNetworkNodes(remoteNetworkNodesToActivate);
 
 		if(discovery) { this.discover(); }
+	}
+
+	activateRemoteNetworkNodes{arg remoteHostnames;
+		this.broadcastMsg('/activate', remoteHostnames);
 	}
 
 	deactivate{
@@ -79,66 +96,6 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	}
 
 	applications{ ^items; }
-
-	getBroadcastIp {
-		^Platform.case(
-			\osx, { unixCmdGetStdOut(
-				"ifconfig | grep broadcast | awk '{print $NF}'")
-			},
-			\windows, { unixCmdGetStdOut(
-				"ifconfig | grep broadcast | awk '{print $NF}'")
-			},
-			\linux, { unixCmdGetStdOut(
-				"/sbin/ifconfig | grep Bcast | awk 'BEGIN {FS = \"[ :]+\"}{print $6}'").stripWhiteSpace()
-			}
-		);
-	}
-
-	getLocalIp {
-
-		// check BSD, may vary ...
-		var line, lnet = false, lnet_ip;
-
-		var addr_list = Platform.case(
-			\osx, { Pipe(
-				"ifconfig | grep '\<inet\>' | awk '{print $2}'", "r")
-			},
-			\linux, { Pipe (
-				"/sbin/ifconfig | grep 'inet addr' | cut -d: -f2 | awk '{print $1}'","r")
-			},
-			\windows, {}
-		);
-
-		var data;
-		var targetAddr;
-
-		line = addr_list.getLine();
-
-		while({line.notNil()})
-		{
-			// check ipv4 valid address patterns
-			lnet = "[0-9]{2,}\.[0-9]{1,}\.[0-9]{1,}\.[1-9]{1,}"
-			.matchRegexp(line);
-
-			// if valid, check whether localhost or lnet
-			if(lnet)
-			{
-				if(line != "127.0.0.1")
-				{ lnet_ip = line; }
-			};
-
-			lnet_ip ?? { line = addr_list.getLine(); };
-			lnet_ip !? { line = nil }
-		};
-
-		lnet_ip !? { ^lnet_ip };
-		lnet_ip ?? { ^"127.0.0.1" };
-
-	}
-
-	getLocalAddr{
-		^NetAddr(this.getLocalIp, NetAddr.localAddr.port);
-	}
 
 	findLocalNetworks{
 		var lines, entries;
@@ -283,7 +240,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	}
 
 	name{
-		^this.getLocalAddr.generateIPString;
+		^this.hostname;
 	}
 
 	fullPath{
@@ -324,6 +281,14 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	sendMsg{arg targetHostname, port, path ...data;
 		//sending eeeeverything as typed YAML for now.
 		NetAddr(targetHostname, port).sendMsg(path, VTMJSON.stringify(data.unbubble));
+	}
+
+	broadcastMsg{arg path ...data;
+		if(localNetworks.notNil, {
+			localNetworks.do({arg item;
+				item.broadcastAddr.sendMsg(path, VTMJSON.stringify(data.unbubble));
+			})
+		});
 	}
 
 	findManagerForContextClass{arg class;

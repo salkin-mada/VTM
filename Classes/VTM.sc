@@ -14,8 +14,8 @@ VTM{
 		);
 	}
 
-	*activate{arg discovery = false;
-		this.local.activate(discovery);
+	*activate{arg discovery = false, remoteNetworkNodesToActivate;
+		this.local.activate(discovery, remoteNetworkNodesToActivate);
 	}
 
 	*deactivate{
