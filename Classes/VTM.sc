@@ -1,4 +1,20 @@
 VTM{
+	classvar <systemConfiguration;
+
+	*initClass{
+		var configFilePath = "~/.vtm.conf.yaml".standardizePath;
+		if(File.exists(configFilePath), {
+			try{
+				systemConfiguration = configFilePath.parseYAMLFile.changeScalarValuesToDataTypes;
+			} {
+				"Error reading VTM config file".warn;
+			}
+		}, {
+			systemConfiguration = IdentityDictionary.new;
+		});
+
+	}
+
 	*local{
 		^VTMLocalNetworkNode.singleton;
 	}
