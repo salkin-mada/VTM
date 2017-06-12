@@ -58,7 +58,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 					if(isAlreadyRegistered.not, {
 						"Registering new network node: %".format([senderHostname, senderAddr]).postln;
 						networkNodeManager.addItemsFromItemDeclarations([
-							senderHostname.asSymbol ->  (addr: jsonData['hostname'].asString)
+							senderHostname.asSymbol ->  (addr: jsonData['addr'].asString)
 						]);
 						this.discover(senderAddr.port_(this.class.discoveryBroadcastPort));
 					});
@@ -251,11 +251,11 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 						}, {
 							"Could not parse inet line for %\n\t%".format(
 								entry.first, inetLine
-							).postln;
+							).warn;
 						});
 					}, {
 						"Did not find IP and broadcast for %".format(
-							String.newFrom(entry.flat)).postln;
+							String.newFrom(entry.flat)).warn;
 					});
 					result = result.add(entryData);
 				};
@@ -311,7 +311,6 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 			this.sendMsg(
 				targetAddr.hostname, targetAddr.port, '/discovery', data
 			);
-			postln([targetAddr.hostname, targetAddr.port, '/discovery', data]);
 		});
 	}
 
@@ -329,7 +328,6 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		{class.isKindOf(VTMHardwareDevice.class) } {managerObj =  hardwareSetup; }
 		{class.isKindOf(VTMScene.class) } {managerObj =  sceneOwner; }
 		{class.isKindOf(VTMScore.class) } {managerObj =  scoreManager; };
-		"DID I Find: % \n\t%".format(managerObj, class).postln;
 		^managerObj;
 	}
 }

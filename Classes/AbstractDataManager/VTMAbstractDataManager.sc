@@ -25,14 +25,12 @@ VTMAbstractDataManager {
 	}
 
 	addItemsFromItemDeclarations{arg itemDecls;
-		"ASA: %".format(itemDecls).postln;
 		itemDecls.do({arg decl;
 			var itemName, itemDeclaration;
 			var newItem;
 			itemName = decl.key;
 			itemDeclaration = decl.value;
 			newItem = this.class.dataClass.new(itemName, itemDeclaration, this);
-			"Made item: %".format(newItem).postln;
 			this.addItem(newItem);
 		});
 	}
