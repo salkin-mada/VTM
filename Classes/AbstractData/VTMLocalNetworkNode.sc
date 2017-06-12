@@ -53,8 +53,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				}, {
 					//a remote network node sent discovery
 					var isAlreadyRegistered;
-					var senderIPString = senderAddr.generateIPString.asSymbol;
-					isAlreadyRegistered = networkNodeManager.hasItemNamed(senderIPString);
+					isAlreadyRegistered = networkNodeManager.hasItemNamed(senderHostname);
 					if(isAlreadyRegistered.not, {
 						"Registering new network node: %".format([senderHostname, senderAddr]).postln;
 						networkNodeManager.addItemsFromItemDeclarations([
