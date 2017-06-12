@@ -2,7 +2,6 @@
 VTMLocalNetworkNode : VTMAbstractDataManager {
 	classvar <singleton;
 	classvar <discoveryBroadcastPort = 57200;
-	classvar <broadcastIPs;
 	var <hostname;
 	var <localNetworks;
 	var discoveryReplyResponder;
@@ -12,6 +11,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 	var <moduleHost;
 	var <sceneOwner;
 	var <scoreManager;
+	var <active = false;
 
 	*dataClass{ ^VTMApplication; }
 
@@ -84,11 +84,13 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				});
 			}, '/discovery', recvPort: this.class.discoveryBroadcastPort);
 		});
+		active = true;
 		if(remoteNetworkNodesToActivate.notNil, {
 			this.activateRemoteNetworkNodes(remoteNetworkNodesToActivate);
 		});
 
 		if(doDiscovery) { this.discover(); }
+
 	}
 
 	activateRemoteNetworkNodes{arg remoteHostnames;
@@ -97,6 +99,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 
 	deactivate{
 		discoveryReplyResponder !? {discoveryReplyResponder.free;};
+		active = false;
 	}
 
 	applications{ ^items; }

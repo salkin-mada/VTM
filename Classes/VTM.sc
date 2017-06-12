@@ -25,4 +25,6 @@ VTM{
 	*discover{
 		this.local.discover;
 	}
+
+	*vtmPath{ ^PathName(PathName(this.filenameSymbol.asString).parentPath).parentPath; }
 }
