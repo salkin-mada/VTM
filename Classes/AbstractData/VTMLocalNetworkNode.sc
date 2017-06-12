@@ -197,44 +197,108 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 					localNetworks = localNetworks.add(VTMLocalNetwork.performWithEnvir(\new, item));
 			}); },
 			\linux, {
-				"No find local network method ifr Linux yet!".warn;
-			},
-			\windows, {
-				"No find local network method for Windows yet!".warn;
-			}
-		);
-
-
-
-	}
-
-	name{
-		^this.getLocalAddr.generateIPString;
-	}
-
-	fullPath{
-		^'/';
-	}
-
-	discover {arg destinationAddr;
-		//Broadcast discover to all network connections
-		if(localNetworks.isNil, { ^this; });
-		localNetworks.do({arg network;
-			var data, targetAddr;
-
-			data = (
-				hostname: this.hostname,
-				addr: NetAddr(network.ip, NetAddr.localAddr.port).generateIPString
-			);
-
-			// if the method argument is nil, the message is broadcasted
-
-			if(destinationAddr.isNil, {
-				targetAddr = NetAddr(
-					network.broadcast,
-					this.class.discoveryBroadcastPort
+				//"No find local network method ifr Linux yet!".warn;
+				//clump into separate network interface entries
+				lines.collect({arg line;
+					if(line.first != Char.space, {
+						entries = entries.add([line]);
+					}, {
+						entries[entries.size - 1] = entries[entries.size - 1].add(line);
+					});
+				});
+				//remove empty lines
+				entries = entries.reject{arg entry;
+					var result = false;
+					if(entry.size == 1, {
+						result = entry.first.isString and: {entry.first.isEmpty};
+					});
+					result;
+				};
+				//remove loopback device
+				entries = entries.reject{arg entry;
+					"Loopback".matchRegexp(entry.first);
+				};
+				//select only entries with IPV4 addresses
+				entries = entries.select{arg entry;
+					entry.any{arg line;
+						"\\<inet\\> .+".matchRegexp(line);
+					};
+				};
+				//Get the MAC addresses
+				entries.do{arg entry;
+					var mac, ip, broadcast;
+					var inetLine, entryData;
+					var result;
+					entryData = ();
+					mac = entry.first.findRegexp("HWaddr (.+)");
+					if(mac.notNil, {
+						entryData.put(\mac, mac[1][1]);
+					}, {
+						"Did not find MAC for entry: %".format(entry).warn;
+					});
+					inetLine = entry.detect{arg line;
+						"\\<inet\\> .+".matchRegexp(line);
+					};
+					if(inetLine.notNil, {
+						var regx;
+						regx = inetLine.findRegexp("addr:(.+) Bcast:(.+) .+");
+						if(regx.notEmpty, {
+							entryData.put(\ip, regx[1][1]);
+							entryData.put(\broadcast, regx[2][1]);
+						}, {
+							"Could not parse inet line for %\n\t%".format(
+								entry.first, inetLine
+							).postln;
+						});
+					}, {
+						"Did not find IP and broadcast for %".format(
+							String.newFrom(entry.flat)).postln;
+						});
+						result = result.add(entryData);
+					};
+					if(result.notNil, {
+						result.do{arg item;
+							localNetworks = localNetworks.add(
+								VTMLocalNetwork.performWithEnvir(\new, item));
+							};
+						});
+					},
+					\windows, {
+						"No find local network method for Windows yet!".warn;
+					}
 				);
-			}, {
+
+
+
+			}
+
+			name{
+				^this.getLocalAddr.generateIPString;
+			}
+
+			fullPath{
+				^'/';
+			}
+
+			discover {arg destinationAddr;
+				//Broadcast discover to all network connections
+				if(localNetworks.isNil, { ^this; });
+				localNetworks.do({arg network;
+					var data, targetAddr;
+
+					data = (
+						hostname: this.hostname,
+						addr: NetAddr(network.ip, NetAddr.localAddr.port).generateIPString
+					);
+
+					// if the method argument is nil, the message is broadcasted
+
+					if(destinationAddr.isNil, {
+						targetAddr = NetAddr(
+							network.broadcast,
+							this.class.discoveryBroadcastPort
+						);
+					}, {
 				targetAddr = destinationAddr;
 			});
 
