@@ -146,53 +146,65 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				entries[entries.size - 1] = entries[entries.size - 1].add(line);
 			});
 		});
-		//remove the entries that don't have any extra information
-		entries = entries.reject({arg item; item.size == 1});
-		//remove the LOOPBACK entry(ies)
-		entries = entries.reject({arg item;
-			"[,<]?LOOPBACK[,>]?".matchRegexp(item.first);
-		});
-		//get only the active entries
-		entries = entries.reject({arg item;
-			item.any{arg jtem;
-				"status: inactive".matchRegexp(jtem);
+
+		Platform.case(
+			\osx, {
+				//remove the entries that don't have any extra information
+				entries = entries.reject({arg item; item.size == 1});
+				//remove the LOOPBACK entry(ies)
+				entries = entries.reject({arg item;
+					"[,<]?LOOPBACK[,>]?".matchRegexp(item.first);
+				});
+				//get only the active entries
+				entries = entries.reject({arg item;
+					item.any{arg jtem;
+						"status: inactive".matchRegexp(jtem);
+					}
+				});
+				//get only the lines with IPV4 addresses and
+				entries = entries.collect({arg item;
+					var inetLine, hwLine;
+					inetLine = item.detect{arg jtem;
+						"\\<inet\\>".matchRegexp(jtem);
+					};
+					if(inetLine.notNil, {
+						hwLine = item.detect{arg jtem;
+							"\\<ether\\>".matchRegexp(jtem);
+						}
+					});
+					[inetLine, hwLine];
+				});
+				//remove all that are nil
+				entries = entries.reject({arg jtem; jtem.first.isNil; });
+
+				//separate the addresses
+				entries.collect({arg item;
+					var ip, bcast, mac;
+					var inetLine, hwLine;
+					#inetLine, hwLine = item;
+
+					ip = inetLine.copy.split(Char.space)[1];
+					bcast = inetLine.findRegexp("broadcast (.+)");
+					bcast = bcast !? {bcast[1][1];};
+					mac = hwLine.findRegexp("ether (.+)");
+					mac = mac !? {mac[1][1]};
+					(
+						ip: ip,
+						broadcast: bcast,
+						mac: mac
+					)
+				}).collect({arg item;
+					localNetworks = localNetworks.add(VTMLocalNetwork.performWithEnvir(\new, item));
+			}); },
+			\linux, {
+				"No find local network method ifr Linux yet!".warn;
+			},
+			\windows, {
+				"No find local network method for Windows yet!".warn;
 			}
-		});
-		//get only the lines with IPV4 addresses and
-		entries = entries.collect({arg item;
-			var inetLine, hwLine;
-			inetLine = item.detect{arg jtem;
-				"\\<inet\\>".matchRegexp(jtem);
-			};
-			if(inetLine.notNil, {
-				hwLine = item.detect{arg jtem;
-					"\\<ether\\>".matchRegexp(jtem);
-				}
-			});
-			[inetLine, hwLine];
-		});
-		//remove all that are nil
-		entries = entries.reject({arg jtem; jtem.first.isNil; });
+		);
 
-		//separate the addresses
-		entries.collect({arg item;
-			var ip, bcast, mac;
-			var inetLine, hwLine;
-			#inetLine, hwLine = item;
 
-			ip = inetLine.copy.split(Char.space)[1];
-			bcast = inetLine.findRegexp("broadcast (.+)");
-			bcast = bcast !? {bcast[1][1];};
-			mac = hwLine.findRegexp("ether (.+)");
-			mac = mac !? {mac[1][1]};
-			(
-				ip: ip,
-				broadcast: bcast,
-				mac: mac
-			)
-		}).collect({arg item;
-			localNetworks = localNetworks.add(VTMLocalNetwork.performWithEnvir(\new, item));
-		});
 
 	}
 
