@@ -35,22 +35,24 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		if(".local$".matchRegexp(hostname), {
 			hostname = hostname.drop(-6);
 		});
+		hostname = hostname.asSymbol;
 		this.findLocalNetworks;
 		NetAddr.broadcastFlag = true;
 		StartUp.add({
 			//Make remote activate responder
 			remoteActivateResponder = OSCFunc({arg msg, time, addr, port;
-				var hostnames = msg[1..];
-				if(hostnames.any({arg item;
-					item.asSymbol == this.hostname
-				}), {
-					this.activate(discover: true);
+				var hostnames = VTMJSON.parse(msg[1]);
+				if(hostnames.detect({arg item;
+					item == this.name;
+				}).notNil, {
+					"Remote VTM activation from: %".format(addr).postln;
+					this.activate(doDiscovery: true);
 				})
 			}, '/activate', recvPort: this.class.discoveryBroadcastPort);
 		});
 	}
 
-	activate{arg discovery = false, remoteNetworkNodesToActivate;
+	activate{arg doDiscovery = false, remoteNetworkNodesToActivate;
 
 		if(discoveryReplyResponder.isNil, {
 			discoveryReplyResponder = OSCFunc({arg msg, time, resp, addr;
@@ -58,10 +60,10 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				var senderHostname, senderAddr, registered = false;
 				senderHostname = jsonData['hostname'].asSymbol;
 				senderAddr = NetAddr.newFromIPString(jsonData['addr'].asString);
-				"We got a discovery message: % %".format(senderHostname, senderAddr).postln;
+				// "We got a discovery message: % %".format(senderHostname, senderAddr).postln;
 
 				if(localNetworks.any({arg item; item.addr == senderAddr;}), {
-					"IT WAS LOCAL, ignoring it!".postln;
+					// "IT WAS LOCAL, ignoring it!".postln;
 				}, {
 					//a remote network node sent discovery
 					var isAlreadyRegistered;
@@ -82,9 +84,11 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				});
 			}, '/discovery', recvPort: this.class.discoveryBroadcastPort);
 		});
-		this.activateRemoteNetworkNodes(remoteNetworkNodesToActivate);
+		if(remoteNetworkNodesToActivate.notNil, {
+			this.activateRemoteNetworkNodes(remoteNetworkNodesToActivate);
+		});
 
-		if(discovery) { this.discover(); }
+		if(doDiscovery) { this.discover(); }
 	}
 
 	activateRemoteNetworkNodes{arg remoteHostnames;
