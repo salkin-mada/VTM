@@ -42,26 +42,25 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 
 		if(discoveryReplyResponder.isNil, {
 			discoveryReplyResponder = OSCFunc({arg msg, time, resp, addr;
-				var jsonData = VTMJSON.parse(msg[1]);
-				var senderHostname, netAddr, registered = false;
-				senderHostname = jsonData["hostname"];
-				topEnvironment[\jsonData] = jsonData;
-				netAddr = NetAddr.newFromIPString(jsonData["addr"].asString);
-				"We got a discovery message: % %".format(senderHostname, netAddr).postln;
+				var jsonData = VTMJSON.parse(msg[1]).changeScalarValuesToDataTypes;
+				var senderHostname, senderAddr, registered = false;
+				senderHostname = jsonData['hostname'];
+				senderAddr = NetAddr.newFromIPString(jsonData['addr'].asString);
+				"We got a discovery message: % %".format(senderHostname, senderAddr).postln;
 
-				if(localNetworks.any({arg item; item.addr == netAddr;}), {
+				if(localNetworks.any({arg item; item.addr == senderAddr;}), {
 					"IT WAS LOCAL, ignoring it!".postln;
 				}, {
 					//a remote network node sent discovery
 					var isAlreadyRegistered;
-					var senderIPString = netAddr.generateIPString.asSymbol;
+					var senderIPString = senderAddr.generateIPString.asSymbol;
 					isAlreadyRegistered = networkNodeManager.hasItemNamed(senderIPString);
 					if(isAlreadyRegistered.not, {
-						"Registering new network node: %".format([senderHostname, netAddr]).postln;
+						"Registering new network node: %".format([senderHostname, senderAddr]).postln;
 						networkNodeManager.addItemsFromItemDeclarations([
-							senderHostname.asSymbol ->  (ip: senderIPString)
+							senderHostname.asSymbol ->  (addr: jsonData['hostname'].asString)
 						]);
-						this.discover(netAddr.port_(this.class.discoveryBroadcastPort));
+						this.discover(senderAddr.port_(this.class.discoveryBroadcastPort));
 					});
 
 				});
@@ -293,7 +292,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 
 			data = (
 				hostname: this.hostname,
-				ip: network.addr
+				addr: network.addr.generateIPString
 			);
 
 			// if the method argument is nil, the message is broadcasted
