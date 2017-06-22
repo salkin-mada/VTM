@@ -12,6 +12,7 @@
         clean=Splay.ar(bufRd);
         modulo=Splay.ar(bufRd%sines)*0.2;
         sig = CombLP.ar(clean+modulo, gate: 1, maxdelaytime: 1, delaytime: 0.1, decaytime: 3, coef: 0.5, mul: 0.2);
+		// stereo
         Splay.ar(sig);
 	};
 };
@@ -91,5 +92,3 @@
         clipmode: \low
 	)
 ];
-
-
