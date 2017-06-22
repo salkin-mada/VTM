@@ -44,8 +44,8 @@ VTMComposableContext : VTMContext {
 		]);
 	}
 
-	*queryDescriptions{
-		^super.queryDescriptions.putAll(VTMOrderedIdentityDictionary[
+	*returnDescriptions{
+		^super.returnDescriptions.putAll(VTMOrderedIdentityDictionary[
 			\owner -> (type: \string)
 		]);
 	}

@@ -6,7 +6,7 @@ VTMValue {
 	var properties;
 
 	*prDefaultValueForType{
-		this.subclassResponsibility(thisMethod);
+		^nil;
 	}
 
 	*typeToClass{arg val;
@@ -18,7 +18,7 @@ VTMValue {
 	}
 
 	*type{
-		this.subclassResponsibility(thisMethod);
+		\none;
 	}
 
 	type{
@@ -200,9 +200,11 @@ VTMValue {
 		if(this.restrictValueToEnum, {
 			if(this.enum.includes(val), {
 				this.set(\value, val);
+				this.changed(\value);
 			});
 		}, {
 			this.set(\value, val);
+			this.changed(\value);
 		});
 	}
 

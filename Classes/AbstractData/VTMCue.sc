@@ -38,8 +38,8 @@ VTMCue : VTMComposableContext {
 		]);
 	}
 
-	*queryDescriptions{
-		^super.queryDescriptions.putAll(VTMOrderedIdentityDictionary[
+	*returnDescriptions{
+		^super.returnDescriptions.putAll(VTMOrderedIdentityDictionary[
 			//points are loaded from the definition file so this only represents the names/numbers of the points
 			\points -> (type: \array, itemType: \string)
 		]);

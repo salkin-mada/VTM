@@ -1,0 +1,6 @@
+VTMMappingDestination{
+
+	*make{arg declaration;
+	}
+
+}

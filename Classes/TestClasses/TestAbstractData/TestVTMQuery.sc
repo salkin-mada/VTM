@@ -1,3 +1,3 @@
-TestVTMQuery : TestVTMValueElement {
+TestVTMReturn : TestVTMValueElement {
 
 }

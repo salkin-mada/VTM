@@ -31,6 +31,14 @@ TestVTMJSON : VTMUnitTest {
 		});
 	}
 
+	test_NetAddr{
+		var testValue = NetAddr("127.0.0.1", 57120);
+		this.assertEquals(
+			testValue,
+			VTMJSON.parse( VTMJSON.stringify(testValue) ),
+			"VTMJSON - stringify and parse kept value %[%] intact.".format(testValue, testValue.class)
+		);
+	}
 	test_Dictionaries{
 	}
 

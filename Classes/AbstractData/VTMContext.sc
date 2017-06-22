@@ -13,7 +13,7 @@ VTMContext : VTMElement {
 
 	classvar <viewClassSymbol = 'VTMContextView';
 
-	*new{arg name, declaration, manager, definition;
+	*new{arg name, declaration, manager, definition, prototypes;
 		var def;
 		/*
 		A definition is mandatory for making a Context.
@@ -23,7 +23,7 @@ VTMContext : VTMElement {
 		definition named in the declaration. This makes it easier to temporary override
 		context defitnitions in the case they need to be worked on or modified on the spot.
 		*/
-		if(declaration.includesKey(\definition), {
+		if(declaration.notNil and: {declaration.includesKey(\definition)}, {
 			//TODO: Load definition from DefinitionLibrary here.
 			//TODO: Throw error if context defintion file not found.
 			//TODO: Make the ContextDefinition environment and add it to the def
@@ -32,18 +32,23 @@ VTMContext : VTMElement {
 			//   declaration[\definition]); //returns a ContextDefinition obj.
 		});
 		def = definition ? def;
-		^super.new(name, declaration, manager).initContext(def);
+		//use the local network node as manager
+		//TODO: Will there problems when one class is listed as manager
+		//for multiple type of objects, in the case of Context/LocalNetworkNode?
+		manager = manager ? VTM.local.findManagerForContextClass(this);
+		^super.new(name, declaration, manager).initContext(def, prototypes);
 	}
 
 	initContext{arg definition_;
 		stateChangeCallbacks = IdentityDictionary.new;
 		if(definition_.notNil, {
 			//TODO: Make this into a .newFrom or .makeFrom so
-			//that definition could be both an Environemnt and 
+			//that definition could be both an Environemnt and
 			//a ContextDefinition.
 			definition = VTMContextDefinition.new(definition_, this);
 		}, {
 			//TODO: make empty ContextDefinition if not defined.
+			definition = VTMContextDefinition.new(nil, this);
 		});
 		envir = definition.makeEnvir;
 		condition = Condition.new;
@@ -55,25 +60,45 @@ VTMContext : VTMElement {
 		this.prChangeState(\didInitialize);
 	}
 
+	isUnmanaged{
+		^manager.context === VTM.local;
+	}
+
 	prInitCues{
 		var itemDeclarations = this.class.cueDescriptions.deepCopy;
 		cues = VTMCueManager(this, itemDeclarations);
 	}
 	prInitMappings{
 		var itemDeclarations = this.class.mappingDescriptions.deepCopy;
-		mappings = VTMCueManager(this, itemDeclarations);
+		mappings = VTMMappingManager(this, itemDeclarations);
 	}
 	prInitScores{
 		var itemDeclarations = this.class.scoreDescriptions.deepCopy;
-		scores = VTMCueManager(this, itemDeclarations);
+		scores = VTMScoreManager(this, itemDeclarations);
 	}
 
 	prInitComponentsWithContextDefinition{
+//		this.components.do({arg component;
+//			var compName = component.name;
+//			if(envir.includesKey(compName), {
+//				var newItem, itemDeclarations;
+//				itemDeclarations = envir[compName];
+//				component.addItemsFromItemDeclarations(itemDeclarations);
+//			});
+//		});
+		this.prAddComponentsToEnvir(envir);
+	}
+
+	prAddComponentsToEnvir{arg componentDeclarations;
 		this.components.do({arg component;
 			var compName = component.name;
-			if(envir.includesKey(compName), {
+			if(componentDeclarations.includesKey(compName), {
 				var newItem, itemDeclarations;
-				itemDeclarations = envir[compName];
+				itemDeclarations = componentDeclarations[compName];
+				//TODO: This is a temporary hack that checks the type of the argument.
+				if(itemDeclarations.isKindOf(ArrayedCollection), {
+					itemDeclarations  = VTMOrderedIdentityDictionary.with( *itemDeclarations );
+				});
 				component.addItemsFromItemDeclarations(itemDeclarations);
 			});
 		});
@@ -102,36 +127,20 @@ VTMContext : VTMElement {
 		};
 	}
 
-	run{arg condition, action;
-		forkIfNeeded{
-			var cond = condition ?? {Condition.new};
-			this.prChangeState(\willRun);
-			if(envir.includesKey(\run), {
-				this.execute(\run, cond);
-			});
-			this.components.do({arg it; it.run(cond)});
-			this.prChangeState(\didRun);
-			action.value(this);
-		};
-	}
-
 	free{arg condition, action;
+		//the stuff that needs to be freed in the envir will happen
+		//in a separate thread. Everything else happens synchronously.
+		this.prChangeState(\willFree);
+		super.free;
 		forkIfNeeded{
 			var cond = condition ?? {Condition.new};
-			this.prChangeState(\willFree);
+
 			if(envir.includesKey(\free), {
 				this.execute(\free, cond);
 			});
-			this.disableOSC;
-			//			children.keysValuesDo({arg key, child;
-			//				child.free(key, cond);
-			//			});
-			this.components.do({arg it; it.free(cond)});
 			this.prChangeState(\didFree);
 			action.value(this);
-			this.release; //Release this as dependant from other objects.
 			definition = nil;
-			super.free;
 		};
 	}
 
@@ -218,22 +227,14 @@ VTMContext : VTMElement {
 		// "[%] Update: %".format(this.name, [theChanged, whatChanged, theChanger, args]).postln;
 	}
 
-	enableOSC{
-		super.enableOSC;
-		this.components.do(_.enableOSC);
+	enableOSC {
+		super.enableOSC();
+		this.components.do(_.enableOSC());
 	}
 
-	disableOSC{
-		this.components.do(_.disableOSC);
-		super.disableOSC;
-	}
-
-	oscEnabled{
-		^if(oscInterface.notNil, {
-			oscInterface.enabled;
-		}, {
-			^nil;
-		});
+	disableOSC {
+		this.components.do(_.disableOSC());
+		super.disableOSC();
 	}
 
 	//recursive == true pulls declaration from components
@@ -274,9 +275,21 @@ VTMContext : VTMElement {
 		]);
 	}
 
-	*queryDescriptions{
-		^super.queryDescriptions.putAll( VTMOrderedIdentityDictionary[
+	*returnDescriptions{
+		^super.returnDescriptions.putAll( VTMOrderedIdentityDictionary[
 			\state -> (type: \string)
 		]);
    	}
+
+	//Make a function that evaluates in the envir.
+	//This method opens a gaping hole into the context's
+	//innards, so it should not be used by other classes
+	//than VTMElementComponent.
+	prContextualizeFunction{arg func;
+		var result;
+		envir.use{
+			result = func.inEnvir;
+		};
+		^result;
+	}
 }

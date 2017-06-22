@@ -4,7 +4,7 @@ TestVTMAbstractData : VTMUnitTest {
 		^[
 			VTMAttribute,
 			VTMCommand,
-			VTMQuery,
+			VTMReturn,
 //			VTMMapping,
 //			VTMDefinitionLibrary,
 //			VTMRemoteNetworkNode,

@@ -190,5 +190,5 @@ TestVTMElement : TestVTMAbstractData {
 
 	test_CommandOSC{}
 
-	test_QueryOSC{}
+	test_ReturnQueryOSC{}
 }

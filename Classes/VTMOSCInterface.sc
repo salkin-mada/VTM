@@ -6,132 +6,58 @@
 //- .leadingSeparator
 //- *makeOSCAPI(obj)
 VTMOSCInterface {
-	var model;
-	var responderDict;
+
+	var parent;
 	var <enabled = false;
+	var responder, compliant_responder;
 
-	*new{arg model;
-		if(model.respondsTo(\fullPath).not, {
+	*new { |parent|
+
+		if(parent.respondsTo(\fullPath).not, {
 			NotYetImplementedError(
-				"% has not implemented 'fullPath' method yet!".format(model.class)).throw;
+				"% has not implemented 'fullPath' method yet!"
+				.format(parent.class)).throw;
 		});
 
-		^super.new.init(model);
+		postln(format("OSC Interface created for: %", parent.fullPath()));
+		^super.newCopyArgs(parent);
 	}
 
-	init{arg model_;
-		model = model_;
+	*makeOSCPathCompliant { |path|
+		var res = path.asString().replace("/:", "/");
+		if(res.contains(":")) { res = res.replace(":", "/") };
+		^res
 	}
 
-	*prMakeResponders{arg model;
-		var result = IdentityDictionary.new;
-		/*
-		model.class.makeOSCAPI(model).keysValuesDo({arg cmdKey, cmdFunc;
-		var responderFunc, lastCmdChar, responderPath;
-		lastCmdChar = cmdKey.asString.last;
-		responderPath = model.fullPath;
-		switch(lastCmdChar,
-		$!, {
-		responderFunc = {arg msg, time, addr, port;
-		cmdFunc.value(model);
-		};
-		},
-		$?, {
-		responderFunc = {arg msg, time, addr, port;
-		var queryHost, queryPath, queryPort;
-		if(msg.size == 4, {
-		var replyData;
-		queryHost = msg[1].asString;
-		queryPort = msg[2];
-		queryPath = msg[3];
-		replyData = cmdFunc.value(model);
-		if(replyData.notNil, {
-		if(replyData.isArray, {
-		NetAddr(queryHost, queryPort).sendMsg(
-		queryPath.asSymbol,
-		*replyData
-		);
-		}, {
-		NetAddr(queryHost, queryPort).sendMsg(
-		queryPath.asSymbol,
-		replyData
-		);
-		});
-		});
-		}, {
-		"% command '%' OSC missing query addr data".format(
-		model.class,
-		responderPath
-		).warn
-		});
-		};
-		},
-		//the default case is a setter method
-		{
-		responderFunc = {arg msg, time, addr, port;
-		cmdFunc.value(msg[1..]);
-		};
-		}
-		);
-		result.put(
-		cmdKey,
-		OSCFunc(responderFunc, responderPath);
-		);
+	makeResponderFromParent {
 
-		});
-		*/
-		result.put(\setters, this.prMakeSetterResponders(model));
-		result.put(\queries, this.prMakeQueryResponders(model));
-		result.put(\commands, this.prMakeCommandResponders(model));
-		^result;
+		responder = OSCFunc({|msg, time, addr, recvport|
+			var path = msg[0];
+			msg = msg.drop(1);
+			postln(format("OSC Message received at %, on port %, addressed to: %, with value: %",
+				time, recvport, path, msg));
+		}, parent.fullPath, recvPort: NetAddr.localAddr.port());
+
+		compliant_responder = OSCFunc({|msg, time, addr, recvport|
+			var path = msg[0];
+			msg = msg.drop(1);
+			postln(format("OSC Message received at %, on port %, addressed to: %, with value: %",
+				time, recvport, path, msg));
+		}, VTMOSCInterface.makeOSCPathCompliant(parent.fullPath.asString()),
+		recvPort: NetAddr.localAddr.port());
 	}
 
-	*prMakeSetterResponders{arg model;
-		var result = IdentityDictionary.new;
-		model.class.declarationKeys.do({arg declarationKey;
-			//TODO: maybe move declaration separator somewhere potentionally more DRY?
-			var path = (model.fullPath ++ '/' ++ declarationKey).asSymbol;
-			result.put(
-				path,
-				OSCFunc({arg msg, time, resp, port;
-					model.perform(declarationKey.asSetter, VTMJSON.parse(msg[1]));
-				}, path)
-			);
-		});
-		^result;
-	}
-
-	*prMakeQueryResponders{arg model;
-		var result = IdentityDictionary.new;
-		^result;
-	}
-
-	*prMakeCommandResponders{arg model;
-		var result = IdentityDictionary.new;
-		^result;
-	}
-
-	enable{
-		if(responderDict.isNil, {
-			responderDict = this.class.prMakeResponders(model);
-		});
+	enable {
 		enabled = true;
+		this.makeResponderFromParent();
 	}
 
-	disable{
-		if(responderDict.notNil, {
-			responderDict.keysValuesDo({arg respTypeKey, typeRespDict;
-				typeRespDict.keys.do({arg k;
-					typeRespDict.removeAt(k).free;
-				});
-			});
-			responderDict = nil;
-		});
+	disable {
 		enabled = false;
 	}
 
-	free{
+	free {
 		this.disable;
-		model = nil;
+		parent = nil;
 	}
 }

@@ -1,6 +1,5 @@
 VTMAbstractDataManager {
-	var name;
-	var context;
+	var <context;
 	var <items;//TEMP getter
 	var oscInterface;
 	var itemDeclarations;
@@ -26,8 +25,11 @@ VTMAbstractDataManager {
 	}
 
 	addItemsFromItemDeclarations{arg itemDecls;
-		itemDecls.keysValuesDo({arg itemName, itemDeclaration;
+		itemDecls.do({arg decl;
+			var itemName, itemDeclaration;
 			var newItem;
+			itemName = decl.key;
+			itemDeclaration = decl.value;
 			newItem = this.class.dataClass.new(itemName, itemDeclaration, this);
 			this.addItem(newItem);
 		});
@@ -39,15 +41,16 @@ VTMAbstractDataManager {
 		});
 	}
 
-	removeItem{arg itemName;
-		if(items.includesKey(itemName), {
+	freeItem{arg itemName;
+		if(this.hasItemNamed(itemName), {
 			var removedItem;
+			items[itemName].disable;//dissable actions and messages
 			removedItem = items.removeAt(itemName);
 			removedItem.free;
 		});
 	}
 
-	includes{arg key;
+	hasItemNamed{arg key;
 		^items.includesKey(key);
 	}
 
@@ -100,27 +103,24 @@ VTMAbstractDataManager {
 
 	leadingSeparator{ ^':'; }
 
-	enableOSC{
-		//make OSC interface if not already created
-		if(oscInterface.isNil, {
-			oscInterface = VTMOSCInterface.new(this);
-		});
-		oscInterface.enable;
+	enableOSC {
+
+		items.keysValuesDo { |key, value|
+			value.enableOSC();
+		};
+
+		oscInterface !? { oscInterface.enable() };
+		oscInterface ?? { oscInterface = VTMOSCInterface(this).enable() };
 	}
 
-	disableOSC{
-		oscInterface.free;
+	disableOSC {
+		oscInterface !? { oscInterface.free() };
 		oscInterface = nil;
 	}
 
-	oscEnabled{
-		^if(oscInterface.notNil, {
-			oscInterface.enabled;
-		}, {
-			^nil;
-		});
+	oscEnabled {
+		^oscInterface.notNil();
 	}
-
 
 	*makeDataManagerDeclaration{arg descriptions, valueDeclarations;
 		var result = VTMOrderedIdentityDictionary[];
@@ -131,6 +131,34 @@ VTMAbstractDataManager {
 			});
 		});
 		^result;
+	}
+
+	addForwarding{arg key, itemName, addr, path, vtmJson = false, mapFunc;
+		var item = items[itemName];
+		item.addForwarding(key, addr, path, vtmJson, mapFunc);
+	}
+
+	removeForwarding{arg key, itemName;
+		var item = items[itemName];
+		item.removeForwarding(key);
+	}
+
+	removeAllForwardings{
+		items.do({arg item;
+			item.removeAllForwarding;
+		});
+	}
+
+	enableForwarding{
+		items.do({arg item;
+			item.enableForwarding;
+		});
+	}
+
+	disableForwarding{
+		items.do({arg item;
+			item.disableForwarding;
+		});
 	}
 
 }

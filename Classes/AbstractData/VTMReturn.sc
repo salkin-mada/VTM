@@ -1,0 +1,3 @@
+VTMReturn : VTMValueElement {
+	*managerClass{ ^VTMReturnManager; }
+}

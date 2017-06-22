@@ -13,7 +13,7 @@ VTMContextDefinition {
 			\attributes -> VTMOrderedIdentityDictionary.new,
 			\commands -> VTMOrderedIdentityDictionary.new,
 			\presets -> VTMOrderedIdentityDictionary.new,
-			\queries -> VTMOrderedIdentityDictionary.new,
+			\returns -> VTMOrderedIdentityDictionary.new,
 			\signals -> VTMOrderedIdentityDictionary.new,
 			\cues -> VTMOrderedIdentityDictionary.new,
 			\mappings -> VTMOrderedIdentityDictionary.new,

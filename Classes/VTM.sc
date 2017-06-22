@@ -1,4 +1,20 @@
 VTM{
+	classvar <systemConfiguration;
+
+	*initClass{
+		var configFilePath = "~/.vtm.conf.yaml".standardizePath;
+		if(File.exists(configFilePath), {
+			try{
+				systemConfiguration = configFilePath.parseYAMLFile.changeScalarValuesToDataTypes;
+			} {
+				"Error reading VTM config file".warn;
+			}
+		}, {
+			systemConfiguration = IdentityDictionary.new;
+		});
+
+	}
+
 	*local{
 		^VTMLocalNetworkNode.singleton;
 	}
@@ -14,5 +30,17 @@ VTM{
 		);
 	}
 
+	*activate{arg discovery = false, remoteNetworkNodesToActivate;
+		this.local.activate(discovery, remoteNetworkNodesToActivate);
+	}
 
+	*deactivate{
+		this.local.deactivate;
+	}
+
+	*discover{
+		this.local.discover;
+	}
+
+	*vtmPath{ ^PathName(PathName(this.filenameSymbol.asString).parentPath).parentPath; }
 }

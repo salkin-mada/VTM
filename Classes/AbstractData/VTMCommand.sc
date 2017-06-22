@@ -1,5 +1,4 @@
 VTMCommand : VTMValueElement {
-	var <>action;
 
 	*managerClass{ ^VTMCommandManager; }
 
@@ -8,10 +7,4 @@ VTMCommand : VTMValueElement {
 	}
 
 	initCommand{}
-
-	free{
-		action = nil;
-		super.free;
-	}
-
 }

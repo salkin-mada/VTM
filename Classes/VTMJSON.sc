@@ -53,6 +53,9 @@ VTMJSON : JSON {
 			}).join(", ")
 			++ "]";
 		});
+		// if(obj.isKindOf(NetAddr), {
+		// 	^"<netaddr> %".format(obj.generateIPString);
+		// });
 
 		// obj.asDictionary -> key value all of its members
 
@@ -98,6 +101,7 @@ VTMJSON : JSON {
 		{"^<string> .+$".matchRegexp(str)} {result = str.drop(9).drop(1).drop(-1); }
 		{"^<bool> true$".matchRegexp(str)} {result = true; }
 		{"^<bool> false$".matchRegexp(str)} {result = false; }
+		// {"^<netaddr> .+$".matchRegexp(str)} {result = NetAddr.newFromIPString(str.drop(10)); }
 		{"^-?[0-9]+(?:\.[0-9]+)?$".matchRegexp(str)}//if number
 		{
 			if(str.asFloat == str.asInteger,

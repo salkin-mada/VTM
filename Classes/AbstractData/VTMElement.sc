@@ -1,8 +1,8 @@
 VTMElement : VTMAbstractData {
-	var <attributes;
-	var <commands;
-	var <queries;
-	var <signals;
+	var attributes;
+	var commands;
+	var returns;
+	var signals;
 
 	*new{arg name, declaration, manager;
 		^super.new(name, declaration, manager).initElement;
@@ -11,7 +11,7 @@ VTMElement : VTMAbstractData {
 	initElement{
 		this.prInitAttributes;
 		this.prInitSignals;
-		this.prInitQueries;
+		this.prInitReturns;
 		this.prInitCommands;
 
 		//TODO: register with LocalNetworkNode singleton.
@@ -33,9 +33,9 @@ VTMElement : VTMAbstractData {
 		signals = VTMSignalManager(this, itemDeclarations);
 	}
 
-	prInitQueries{
-		var itemDeclarations = this.class.queryDescriptions.deepCopy;
-		queries = VTMQueryManager(this, itemDeclarations);
+	prInitReturns{
+		var itemDeclarations = this.class.returnDescriptions.deepCopy;
+		returns  = VTMReturnManager(this, itemDeclarations);
 	}
 
 	prInitCommands{
@@ -44,7 +44,7 @@ VTMElement : VTMAbstractData {
 	}
 
 	components{
-		^[attributes, queries, signals, commands];
+		^[attributes, returns, signals, commands];
 	}
 
 	free{
@@ -54,7 +54,7 @@ VTMElement : VTMAbstractData {
 
 	*attributeDescriptions{  ^VTMOrderedIdentityDictionary[]; }
 	*commandDescriptions{ ^VTMOrderedIdentityDictionary[]; }
-	*queryDescriptions{ ^VTMOrderedIdentityDictionary[]; }
+	*returnDescriptions{ ^VTMOrderedIdentityDictionary[]; }
 	*signalDescriptions{ ^VTMOrderedIdentityDictionary[]; }
 
 	description{
@@ -63,37 +63,34 @@ VTMElement : VTMAbstractData {
 			\attributes -> this.class.attributeDescriptions,
 			\commands -> this.class.commandDescriptions,
 			\signals -> this.class.signalDescriptions,
-			\queries -> this.class.queryDescriptions
+			\returns -> this.class.returnDescriptions
 		]);
 		^result;
 	}
 
 	//set attribute values.
-	set{arg key, value;
-		var attr = attributes[key];
-		if(attr.notNil, {
-			attr.valueAction_(value);
-		});
+	set{arg key...args;
+		attributes.set(key, *args);
 	}
 
 	//get attribute(init or run-time) or parameter(init-time) values.
 	get{arg key;
-		var attr = attributes[key];
-		if(attr.notNil, {
-			^attr.value;
+		var result = attributes.get(key);
+		if(result.notNil, {
+			^result;
 		});
 		//if no attribute found try getting a parameter
 		^super.get(key);
 	}
 
 	//do command with possible value args. Only run-time.
-	do{arg key ...args;
-		commands[key].do(*args);
+	doCommand{arg key ...args;
+		commands.doCommand(key, *args);
 	}
 
-	//get query results. Only run-time
+	//get return results. Only run-time
 	query{arg key;
-		^queries[key].value;
+		^returns.query(key);
 	}
 
 	//emits a signal
@@ -101,14 +98,68 @@ VTMElement : VTMAbstractData {
 	//TODO: How to make this method esily avilable from within a
 	//context definition, and still protected from the outside?
 	emit{arg key...args;
-		signals[key].emit(*args);
+		signals.emit(key, *args);
+	}
+
+	return{arg key ...args;
+		returns.return(key, *args);
 	}
 
 	onSignal{arg key, func;
 		//TODO: Warn or throw if signal not found
-		if(signals.includes(key), {
+		if(signals.hasItemNamed(key), {
 			signals[key].action_(func);
 		});
 	}
 
+	attributes {
+		^attributes.items.keys;
+	}
+
+	commands{
+		^commands.items.keys;
+	}
+
+	returns{
+		^returns.items.keys;
+	}
+
+	signals{
+		^signals.items.keys;
+	}
+
+	addForwarding{arg key, compName, itemName,  addr, path, vtmJson = false, mapFunc;
+		var comp = switch(compName, 
+			\attributes, {attributes},
+			\returns, {returns}
+		);
+		comp.addForwarding(key, itemName, addr, path, vtmJson, mapFunc);
+	}
+
+	removeForwarding{arg key, compName, itemName;
+		var comp = switch(compName, 
+			\attributes, {attributes},
+			\returns, {returns}
+		);
+		comp.removeForwarding(key, itemName);
+	}
+
+	removeAllForwardings{
+		this.components.do({arg comp;
+			comp.removeAllForwarding;
+		});
+	}
+
+	enableForwarding{
+		this.components.do({arg comp;
+			comp.enableForwarding;
+		});
+	}
+
+	disableForwarding{
+		this.components.do({arg comp;
+			comp.disableForwarding;
+		});
+	}
 }
+

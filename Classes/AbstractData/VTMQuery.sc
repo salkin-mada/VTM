@@ -1,3 +1,0 @@
-VTMQuery : VTMValueElement {
-	*managerClass{ ^VTMQueryManager; }
-}
