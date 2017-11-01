@@ -238,7 +238,7 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 				});
 			},
 			\windows, {
-				"No find local network method for Windows yet!".warn;
+				"VTM has no local network method for Windows yet!".warn;
 			}
 		);
 
@@ -308,4 +308,3 @@ VTMLocalNetworkNode : VTMAbstractDataManager {
 		^managerObj;
 	}
 }
-
